@@ -592,10 +592,10 @@ body{
   </nav>
 
   <div class="sidebar-footer">
-    <div class="avatar">PR</div>
+    <div class="avatar" id="user-avatar">?</div>
     <div class="user-info">
-      <div class="user-name">Professor</div>
-      <div class="user-role">Instructor · Admin</div>
+      <div class="user-name" id="user-name">Guest</div>
+      <div class="user-role" id="user-email" style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px"></div>
     </div>
     <button class="logout-btn" title="Logout" onclick="window.location.href='login.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -626,7 +626,7 @@ body{
     <!-- ── HOME / DASHBOARD ── -->
     <div id="page-home" class="section-page active">
       <div class="dash-hero">
-        <div class="dash-greeting">Good morning, <em>Professor</em> 👋</div>
+        <div class="dash-greeting">Good morning, <em id="greeting-name">there</em> 👋</div>
         <div class="dash-sub">Everything you need to teach dimensionality reduction — in one place.</div>
       </div>
 
@@ -871,6 +871,41 @@ document.addEventListener('keydown', e => {
   if(e.target.tagName==='INPUT') return;
   if(keyMap[e.key]) navTo(keyMap[e.key], document.querySelector(`[data-page="${keyMap[e.key]}"]`));
 });
+
+/* ── Load user session info ── */
+(function(){
+  var name    = sessionStorage.getItem('manifold_user')  || 'Guest';
+  var email   = sessionStorage.getItem('manifold_email') || '';
+  var role    = sessionStorage.getItem('manifold_role')  || 'student';
+  var picture = sessionStorage.getItem('manifold_picture') || '';
+
+  // Avatar — initials from name
+  var initials = name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2) || '?';
+  var avatarEl = document.getElementById('user-avatar');
+  if(avatarEl){
+    if(picture){
+      avatarEl.innerHTML = '<img src="'+picture+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+    } else {
+      avatarEl.textContent = initials;
+    }
+  }
+
+  // Name + email in sidebar
+  var nameEl  = document.getElementById('user-name');
+  var emailEl = document.getElementById('user-email');
+  if(nameEl)  nameEl.textContent  = role==='owner' ? name+' \u2605' : name;
+  if(emailEl) emailEl.textContent = email;
+
+  // Greeting
+  var greetEl = document.getElementById('greeting-name');
+  if(greetEl) greetEl.textContent = name.split(' ')[0] || 'there';
+
+  // Dynamic greeting by time
+  var hr = new Date().getHours();
+  var timeGreet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  var greetWrap = greetEl ? greetEl.closest('.dash-greeting') : null;
+  if(greetWrap) greetWrap.childNodes[0].textContent = timeGreet+', ';
+})();
 </script>
 </body>
 </html>
