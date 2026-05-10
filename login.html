@@ -250,15 +250,20 @@ function notifyLogin(email, name){
 
 /* ── Send welcome email via EmailJS ── */
 function sendWelcomeEmail(name, email){
-  try{
-    if(typeof emailjs==='undefined')return;
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_name:  name,
-      to_email: email,
-      name:     name,
-      email:    email,
-    });
-  }catch(e){ /* silently ignore */ }
+  if(typeof emailjs==='undefined'){
+    console.error('EmailJS not loaded');
+    return;
+  }
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_name:  name,
+    to_email: email,
+    name:     name,
+    email:    email,
+  }).then(function(r){
+    console.log('Email sent OK:', r.status, r.text);
+  }).catch(function(e){
+    console.error('Email failed:', JSON.stringify(e));
+  });
 }
 
 window.addEventListener('load', function(){
