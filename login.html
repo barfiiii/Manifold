@@ -255,6 +255,8 @@ function sendWelcomeEmail(name, email){
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_name:  name,
       to_email: email,
+      name:     name,
+      email:    email,
     });
   }catch(e){ /* silently ignore */ }
 }
