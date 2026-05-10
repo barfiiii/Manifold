@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifold — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --bg:         #04091a;
+  --sidebar-bg: #060c1f;
+  --card-bg:    rgba(255,255,255,0.032);
+  --card-hover: rgba(255,255,255,0.055);
+  --border:     rgba(255,255,255,0.07);
+  --border-h:   rgba(255,255,255,0.13);
+  --accent:     #00d4ff;
+  --accent2:    #7c3aed;
+  --text:       #e8f4ff;
+  --muted:      #5a7898;
+  --sub:        #8aaac8;
+  --sidebar-w:  260px;
+
+  --c-warn: #f59e0b;
+  --c-info: #00d4ff;
+  --c-succ: #10b981;
+  --c-vio:  #7c3aed;
+  --c-rose: #f43f5e;
+  --c-oran: #f97316;
+}
+
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ═══════════ SIDEBAR ═══════════ */
+.sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  z-index:10;
+  position:relative;
+}
+
+.sidebar-logo{
+  padding:22px 20px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.logo-dots{
+  display:flex;
+  gap:3px;
+  align-items:flex-end;
+}
+.logo-dots span{
+  display:block;
+  width:4px;
+  border-radius:2px;
+  background:var(--accent);
+  animation:bar 2.4s ease-in-out infinite;
+}
+.logo-dots span:nth-child(1){height:6px; animation-delay:0s;}
+.logo-dots span:nth-child(2){height:10px;animation-delay:.15s;}
+.logo-dots span:nth-child(3){height:15px;animation-delay:.3s;}
+.logo-dots span:nth-child(4){height:10px;animation-delay:.45s;}
+.logo-dots span:nth-child(5){height:5px; animation-delay:.6s;}
+@keyframes bar{
+  0%,100%{opacity:.4;transform:scaleY(.7);}
+  50%     {opacity:1; transform:scaleY(1);}
+}
+
+.logo-name{
+  font-family:'Syne',sans-serif;
+  font-size:20px;
+  font-weight:800;
+  letter-spacing:-0.5px;
+  background:linear-gradient(130deg,#fff 0%,var(--accent) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+.sidebar-nav{
+  flex:1;
+  overflow-y:auto;
+  padding:12px 0;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,0.06) transparent;
+}
+
+.nav-section-label{
+  font-size:9.5px;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:14px 20px 6px;
+  font-weight:500;
+}
+
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 20px;
+  cursor:pointer;
+  border-radius:0;
+  transition:background .15s, color .15s;
+  font-size:13px;
+  color:var(--sub);
+  position:relative;
+  user-select:none;
+}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{
+  background:rgba(0,212,255,0.07);
+  color:var(--accent);
+}
+.nav-item.active::before{
+  content:'';
+  position:absolute;
+  left:0;top:20%;bottom:20%;
+  width:2.5px;
+  border-radius:0 2px 2px 0;
+  background:var(--accent);
+}
+
+.nav-icon{
+  width:17px;height:17px;
+  flex-shrink:0;
+  opacity:.7;
+}
+.nav-item.active .nav-icon,
+.nav-item:hover .nav-icon{opacity:1;}
+
+.nav-badge{
+  margin-left:auto;
+  font-size:9px;
+  padding:2px 7px;
+  border-radius:20px;
+  font-weight:600;
+  letter-spacing:.4px;
+}
+
+/* sub-items under Techniques */
+.sub-nav{
+  overflow:hidden;
+  max-height:0;
+  transition:max-height .3s ease;
+}
+.sub-nav.open{max-height:300px;}
+.sub-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 20px 7px 42px;
+  font-size:12px;
+  color:var(--muted);
+  cursor:pointer;
+  transition:color .15s, background .15s;
+}
+.sub-item:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.sub-item.active{color:var(--accent);}
+.sub-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:currentColor;
+  flex-shrink:0;
+  opacity:.6;
+}
+
+.nav-chevron{
+  margin-left:auto;
+  width:13px;height:13px;
+  opacity:.5;
+  transition:transform .25s;
+}
+.nav-item.open .nav-chevron{transform:rotate(90deg);}
+
+.sidebar-footer{
+  border-top:1px solid var(--border);
+  padding:16px 20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.avatar{
+  width:32px;height:32px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;
+  flex-shrink:0;
+}
+.user-info{flex:1;}
+.user-name{font-size:12px;font-weight:500;color:var(--text);}
+.user-role{font-size:10px;color:var(--muted);}
+.logout-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);padding:4px;border-radius:6px;
+  transition:color .15s, background .15s;
+  display:flex;align-items:center;
+}
+.logout-btn:hover{color:var(--text);background:rgba(255,255,255,0.06);}
+
+/* ═══════════ MAIN AREA ═══════════ */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* top bar */
+.topbar{
+  height:58px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 28px;
+  gap:14px;
+  flex-shrink:0;
+}
+.topbar-title{
+  font-family:'Syne',sans-serif;
+  font-size:17px;
+  font-weight:700;
+  color:var(--text);
+}
+.topbar-breadcrumb{
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.topbar-breadcrumb span{color:var(--sub);}
+.topbar-right{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.topbar-tag{
+  font-size:10px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:20px;
+}
+
+/* content area */
+.content{
+  flex:1;
+  overflow-y:auto;
+  padding:32px 32px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,0.06) transparent;
+}
+
+/* ═══════════ DASHBOARD HOME ═══════════ */
+.dash-hero{
+  margin-bottom:36px;
+}
+.dash-greeting{
+  font-family:'Syne',sans-serif;
+  font-size:28px;
+  font-weight:800;
+  letter-spacing:-0.5px;
+  margin-bottom:6px;
+}
+.dash-greeting em{
+  font-style:normal;
+  background:linear-gradient(90deg,var(--accent),#a78bfa);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.dash-sub{
+  font-size:14px;
+  color:var(--muted);
+}
+
+.dash-stats{
+  display:flex;
+  gap:14px;
+  margin-bottom:36px;
+  flex-wrap:wrap;
+}
+.stat-card{
+  flex:1;
+  min-width:140px;
+  padding:18px 20px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);
+}
+.stat-num{
+  font-family:'Syne',sans-serif;
+  font-size:28px;
+  font-weight:800;
+  line-height:1;
+  margin-bottom:4px;
+}
+.stat-lbl{font-size:11px;color:var(--muted);}
+
+.section-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:16px;
+}
+
+.sec-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:24px;
+  cursor:pointer;
+  transition:background .2s, border-color .2s, transform .2s;
+  position:relative;
+  overflow:hidden;
+}
+.sec-card:hover{
+  background:var(--card-hover);
+  border-color:var(--border-h);
+  transform:translateY(-3px);
+}
+.sec-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;height:1px;
+  opacity:0;
+  transition:opacity .2s;
+}
+.sec-card:hover::before{opacity:1;}
+
+.sec-num{
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+  font-weight:500;
+}
+.sec-icon-wrap{
+  width:42px;height:42px;
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+}
+.sec-name{
+  font-family:'Syne',sans-serif;
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:6px;
+  letter-spacing:-0.2px;
+}
+.sec-desc{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.6;
+  margin-bottom:16px;
+}
+.sec-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.tag{
+  font-size:10px;
+  padding:3px 8px;
+  border-radius:6px;
+  font-weight:500;
+}
+.sec-arrow{
+  position:absolute;
+  top:22px;right:22px;
+  width:28px;height:28px;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  transition:transform .2s, background .2s;
+}
+.sec-card:hover .sec-arrow{transform:translate(2px,-2px);}
+
+/* ═══════════ PLACEHOLDER SECTION PAGE ═══════════ */
+.section-page{
+  display:none;
+  animation:fadein .35s ease;
+}
+.section-page.active{display:block;}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.section-header{
+  margin-bottom:32px;
+}
+.section-tag{
+  display:inline-block;
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:4px 12px;
+  border-radius:20px;
+  margin-bottom:12px;
+  font-weight:500;
+}
+.section-title{
+  font-family:'Syne',sans-serif;
+  font-size:32px;
+  font-weight:800;
+  letter-spacing:-1px;
+  margin-bottom:10px;
+}
+.section-lead{
+  font-size:15px;
+  color:var(--sub);
+  max-width:640px;
+  line-height:1.7;
+}
+
+.coming-soon{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:340px;
+  border:1px dashed var(--border);
+  border-radius:20px;
+  gap:14px;
+  color:var(--muted);
+}
+.coming-soon svg{opacity:.25;}
+.coming-soon h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--sub);}
+.coming-soon p{font-size:13px;text-align:center;max-width:320px;line-height:1.7;}
+
+/* ═══════════ COLOURS per section ═══════════ */
+.c-warn{ color:var(--c-warn); }
+.c-info{ color:var(--c-info); }
+.c-succ{ color:var(--c-succ); }
+.c-vio { color:var(--c-vio);  }
+.c-rose{ color:var(--c-rose); }
+.c-oran{ color:var(--c-oran); }
+.bg-warn{ background:rgba(245,158,11,.10);  }
+.bg-info{ background:rgba(0,212,255,.10);   }
+.bg-succ{ background:rgba(16,185,129,.10);  }
+.bg-vio { background:rgba(124,58,237,.10);  }
+.bg-rose{ background:rgba(244,63,94,.10);   }
+.bg-oran{ background:rgba(249,115,22,.10);  }
+.brd-warn{ border-color:rgba(245,158,11,.22); }
+.brd-info{ border-color:rgba(0,212,255,.22);  }
+.brd-succ{ border-color:rgba(16,185,129,.22); }
+.brd-vio { border-color:rgba(124,58,237,.22); }
+.brd-rose{ border-color:rgba(244,63,94,.22);  }
+.brd-oran{ border-color:rgba(249,115,22,.22); }
+.tag-warn{ background:rgba(245,158,11,.12); color:var(--c-warn); }
+.tag-info{ background:rgba(0,212,255,.12);  color:var(--c-info); }
+.tag-succ{ background:rgba(16,185,129,.12); color:var(--c-succ); }
+.tag-vio { background:rgba(124,58,237,.12); color:var(--c-vio);  }
+.tag-rose{ background:rgba(244,63,94,.12);  color:var(--c-rose); }
+.tag-oran{ background:rgba(249,115,22,.12); color:var(--c-oran); }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-dots">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="logo-name">MANIFOLD</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+
+    <!-- Dashboard -->
+    <div class="nav-item active" data-page="home" onclick="navTo('home',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+      Dashboard
+    </div>
+
+    <div class="nav-section-label" style="margin-top:4px">Content</div>
+
+    <!-- 01 Curse -->
+    <div class="nav-item" data-page="curse" onclick="window.location.href='section-01.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      Curse of Dimensionality
+      <span class="nav-badge tag-warn">01</span>
+    </div>
+
+    <!-- 02 What is DR -->
+    <div class="nav-item" data-page="dr" onclick="window.location.href='section-02.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      What is Dim. Reduction?
+      <span class="nav-badge tag-info">02</span>
+    </div>
+
+    <!-- 03 Techniques (expandable) -->
+    <div class="nav-item" id="techItem" onclick="toggleTech(this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Techniques
+      <span class="nav-badge tag-succ">04</span>
+      <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </div>
+    <div class="sub-nav" id="techSub">
+      <div class="sub-item" data-page="pca"  onclick="window.location.href='section-pca.html'">
+        <div class="sub-dot"></div> PCA
+      </div>
+      <div class="sub-item" data-page="tsne" onclick="window.location.href='section-tsne.html'">
+        <div class="sub-dot"></div> t-SNE
+      </div>
+      <div class="sub-item" data-page="umap" onclick="window.location.href='section-umap.html'">
+        <div class="sub-dot"></div> UMAP
+      </div>
+      <div class="sub-item" data-page="lda"  onclick="window.location.href='section-lda.html'">
+        <div class="sub-dot"></div> LDA
+      </div>
+      <div class="sub-item" data-page="iso"  onclick="window.location.href='section-isomap.html'">
+        <div class="sub-dot"></div> Isomap
+      </div>
+    </div>
+
+    <!-- 04 Compare -->
+    <div class="nav-item" data-page="compare" onclick="window.location.href='section-compare.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      Compare Techniques
+      <span class="nav-badge tag-warn">04</span>
+    </div>
+
+    <!-- 05 Playground -->
+    <div class="nav-item" data-page="playground" onclick="window.location.href='section05-playground.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/>
+        <circle cx="18" cy="18" r="2"/><circle cx="6" cy="18" r="2"/>
+        <line x1="8" y1="6" x2="10" y2="10"/><line x1="16" y1="6" x2="14" y2="10"/>
+        <line x1="16" y1="18" x2="14" y2="14"/><line x1="8" y1="18" x2="10" y2="14"/>
+      </svg>
+      Dataset Playground
+      <span class="nav-badge tag-succ">05</span>
+    </div>
+
+    <!-- 06 GPR -->
+    <div class="nav-item" data-page="gpr" onclick="window.location.href='section-gpr.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/><path d="M3 15c3-3 5-1 7-4s4-7 7-7"/>
+        <path d="M3 19c3-3 5-1 7-4s4-7 7-7" opacity=".3"/>
+      </svg>
+      GPR
+      <span class="nav-badge tag-rose">06</span>
+    </div>
+
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="avatar">PR</div>
+    <div class="user-info">
+      <div class="user-name">Professor</div>
+      <div class="user-role">Instructor · Admin</div>
+    </div>
+    <button class="logout-btn" title="Logout" onclick="window.location.href='login.html'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div id="topTitle" class="topbar-title">Dashboard</div>
+    <div id="topCrumb" class="topbar-breadcrumb">
+      <span>Manifold</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-tag">Session Active</div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ── HOME / DASHBOARD ── -->
+    <div id="page-home" class="section-page active">
+      <div class="dash-hero">
+        <div class="dash-greeting">Good morning, <em>Professor</em> 👋</div>
+        <div class="dash-sub">Everything you need to teach dimensionality reduction — in one place.</div>
+      </div>
+
+      <div class="dash-stats">
+        <div class="stat-card">
+          <div class="stat-num c-info">9</div>
+          <div class="stat-lbl">Sections</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num c-succ">5</div>
+          <div class="stat-lbl">Algorithms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num c-warn">10+</div>
+          <div class="stat-lbl">Datasets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num c-vio">∞</div>
+          <div class="stat-lbl">Interactive Demos</div>
+        </div>
+      </div>
+
+      <div class="section-grid" id="sectionGrid"></div>
+    </div>
+
+    <!-- ── SECTION PAGES (placeholders, will be built out) ── -->
+    <div id="page-curse"      class="section-page"></div>
+    <div id="page-dr"         class="section-page"></div>
+    <div id="page-pca"        class="section-page"></div>
+    <div id="page-curse"      class="section-page"></div>
+    <div id="page-dr"         class="section-page"></div>
+    <div id="page-iso"        class="section-page"></div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+/* ── Section metadata ── */
+const SECTIONS = [
+  {
+    id:'curse', num:'01', name:'Curse of Dimensionality', file:'section-01.html',
+    desc:'Why high-dimensional spaces are counterintuitive and why data becomes sparse as dimensions grow.',
+    tags:['Animated','Interactive','Concept'],
+    color:'warn', icon:`<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>`,
+    tagline:'SECTION 01 · FOUNDATIONAL',
+    lead:'Explore how adding dimensions creates empty space, breaks distances, and makes machine learning hard.',
+  },
+  {
+    id:'dr', num:'02', name:'What is Dim. Reduction?', file:'section-02.html',
+    desc:'Goals, types, and when to use dimensionality reduction in real-world problems.',
+    tags:['Visual','Overview','Theory'],
+    color:'info', icon:`<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
+    tagline:'SECTION 02 · OVERVIEW',
+    lead:'Understand the manifold hypothesis, linear vs non-linear methods, and real-world use cases.',
+  },
+  {
+    id:'pca', num:'03A', name:'PCA', file:'section-pca.html',
+    desc:'Principal Component Analysis — linear projection that maximises explained variance.',
+    tags:['Step-by-step','Eigenvectors','Variance'],
+    color:'succ', icon:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+    tagline:'TECHNIQUE 03A · LINEAR',
+    lead:'Walk through covariance matrices, eigenvectors, and explained variance interactively.',
+  },
+  {
+    id:'tsne', num:'03B', name:'t-SNE', file:'section-tsne.html',
+    desc:'t-distributed Stochastic Neighbor Embedding — probabilistic non-linear reduction.',
+    tags:['Clusters','Perplexity','Non-linear'],
+    color:'succ', icon:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+    tagline:'TECHNIQUE 03B · NON-LINEAR',
+    lead:'See how t-SNE preserves local neighborhood structure and what perplexity really controls.',
+  },
+  {
+    id:'umap', num:'03C', name:'UMAP', file:'section-umap.html',
+    desc:'Uniform Manifold Approximation and Projection — fast, topology-preserving reduction.',
+    tags:['Topology','Fast','Scalable'],
+    color:'succ', icon:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+    tagline:'TECHNIQUE 03C · NON-LINEAR',
+    lead:'Understand UMAP\'s mathematical foundations and why it scales better than t-SNE.',
+  },
+  {
+    id:'lda', num:'03D', name:'LDA', file:'section-lda.html',
+    desc:'Linear Discriminant Analysis — supervised reduction that maximises class separability.',
+    tags:['Supervised','Classes','Linear'],
+    color:'succ', icon:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+    tagline:'TECHNIQUE 03D · SUPERVISED',
+    lead:'Learn how LDA finds directions that best separate classes, unlike PCA\'s variance focus.',
+  },
+  {
+    id:'iso', num:'03E', name:'Isomap', file:'section-isomap.html',
+    desc:'Geodesic distance-preserving non-linear reduction via shortest paths and MDS.',
+    tags:['Geodesic','Manifold','kNN'],
+    color:'succ', icon:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+    tagline:'TECHNIQUE 03E · NON-LINEAR',
+    lead:'See how Isomap unfolds curved manifolds using graph-based geodesic distances.',
+  },
+  {
+    id:'compare', num:'04', name:'Compare Techniques', file:'section-compare.html',
+    desc:'Run any two algorithms side-by-side on the same dataset and compare results.',
+    tags:['A vs B','Same data','Metrics'],
+    color:'warn', icon:`<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`,
+    tagline:'SECTION 04 · COMPARISON',
+    lead:'Pick two techniques, sync their parameters, and see exactly how they differ on the same input.',
+  },
+  {
+    id:'playground', num:'05', name:'Dataset Playground', file:'section05-playground.html',
+    desc:'Free-form exploration — any dataset, any algorithm, any parameters. Upload your own data.',
+    tags:['Upload CSV','Per-class Colour','Export PNG'],
+    color:'succ', icon:`<circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><circle cx="6" cy="18" r="2"/>`,
+    tagline:'SECTION 05 · PLAYGROUND',
+    lead:'Iris, Wine, Swiss Roll, Digits and more. Upload any CSV, assign colours per class, and explore.',
+  },
+  {
+    id:'gpr', num:'06', name:'Gaussian Process Regression', file:'section-gpr.html',
+    desc:'Apply GPR to any dataset — choose kernels, tune hyperparameters, visualise uncertainty bands.',
+    tags:['Kernels','Uncertainty','Advanced'],
+    color:'rose', icon:`<path d="M3 3v18h18"/><path d="M3 15c3-3 5-1 7-4s4-7 7-7"/>`,
+    tagline:'SECTION 06 · ADVANCED',
+    lead:'Select kernel functions, adjust hyperparameters, and see the posterior distribution come alive.',
+  },
+];
+
+/* ── Build dashboard cards ── */
+const grid = document.getElementById('sectionGrid');
+SECTIONS.forEach(s => {
+  const c = s.color;
+  const card = document.createElement('div');
+  card.className = `sec-card brd-${c}`;
+  card.style.cssText = `--hover-top: linear-gradient(90deg,transparent,var(--c-${c}) 50%,transparent);`;
+  // Badge: completed sections show a ✓, others show nothing
+  const doneBadge = s.file
+    ? `<span style="position:absolute;top:22px;right:58px;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600;background:rgba(16,185,129,.12);color:#10b981;">LIVE</span>`
+    : '';
+  card.innerHTML = `
+    <div class="sec-arrow bg-${c} c-${c}">→</div>
+    ${doneBadge}
+    <div class="sec-num">${s.num}</div>
+    <div class="sec-icon-wrap bg-${c}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="c-${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        ${s.icon}
+      </svg>
+    </div>
+    <div class="sec-name">${s.name}</div>
+    <div class="sec-desc">${s.desc}</div>
+    <div class="sec-tags">
+      ${s.tags.map(t=>`<span class="tag tag-${c}">${t}</span>`).join('')}
+    </div>`;
+  card.addEventListener('click', () => {
+    if(s.file){
+      window.location.href = s.file;
+    } else {
+      navTo(s.id, null);
+      if(['pca','tsne','umap','lda','iso'].includes(s.id)){
+        document.getElementById('techSub').classList.add('open');
+        document.getElementById('techItem').classList.add('open');
+      }
+    }
+  });
+  grid.appendChild(card);
+});
+
+/* ── Build placeholder pages (only for sections without a dedicated file) ── */
+SECTIONS.forEach(s => {
+  if(s.file) return; // has a real page — no placeholder needed
+  const el = document.getElementById(`page-${s.id}`);
+  if(!el) return;
+  const c = s.color;
+  el.innerHTML = `
+    <div class="section-header">
+      <div class="section-tag bg-${c} c-${c}">${s.tagline}</div>
+      <div class="section-title">${s.name}</div>
+      <div class="section-lead">${s.lead}</div>
+    </div>
+    <div class="coming-soon">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" class="c-${c}">
+        ${s.icon}
+      </svg>
+      <h3>Section coming soon</h3>
+      <p>The interactive content for <strong>${s.name}</strong> will be built here — animations, visuals, sliders, and demos.</p>
+    </div>`;
+});
+
+/* ── Navigation ── */
+let currentPage = 'home';
+
+function navTo(pageId, triggerEl, isSub=false) {
+  // hide all pages
+  document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(`page-${pageId}`);
+  if(target) target.classList.add('active');
+
+  // update sidebar active state
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.sub-item').forEach(n => n.classList.remove('active'));
+
+  if(isSub && triggerEl){
+    triggerEl.classList.add('active');
+    document.getElementById('techItem').classList.add('active','open');
+  } else if(triggerEl){
+    triggerEl.classList.add('active');
+  } else {
+    // triggered from dashboard card
+    const match = document.querySelector(`[data-page="${pageId}"]`);
+    if(match){
+      if(match.classList.contains('sub-item')) match.classList.add('active');
+      else match.classList.add('active');
+    }
+  }
+
+  // update topbar
+  const sec = SECTIONS.find(s=>s.id===pageId);
+  const titleEl = document.getElementById('topTitle');
+  const crumbEl = document.getElementById('topCrumb');
+  if(pageId==='home'){
+    titleEl.textContent = 'Dashboard';
+    crumbEl.innerHTML = '<span>Manifold</span>';
+  } else if(sec){
+    titleEl.textContent = sec.name;
+    crumbEl.innerHTML = `<span>Manifold</span> <span style="opacity:.4">›</span> <span>${sec.name}</span>`;
+  }
+
+  currentPage = pageId;
+
+  // scroll to top
+  document.querySelector('.content').scrollTo({top:0, behavior:'smooth'});
+}
+
+function toggleTech(el) {
+  const sub = document.getElementById('techSub');
+  const isOpen = sub.classList.contains('open');
+  sub.classList.toggle('open');
+  el.classList.toggle('open');
+  if(!isOpen){
+    // don't navigate, just expand
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active','open');
+  }
+}
+
+/* keyboard shortcut: number keys for quick nav */
+const keyMap = {'1':'curse','2':'dr','4':'compare'};
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT') return;
+  if(keyMap[e.key]) navTo(keyMap[e.key], document.querySelector(`[data-page="${keyMap[e.key]}"]`));
+});
+</script>
+</body>
+</html>
