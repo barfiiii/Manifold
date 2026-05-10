@@ -124,6 +124,9 @@ canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
   </div>
 
   <div class="footer">MANIFOLD &middot; Interactive Learning Platform</div>
+  <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(107,138,170,0.35);">
+    Contact &nbsp;&middot;&nbsp; <a href="mailto:shrawanvedshree@gmail.com" style="color:rgba(107,138,170,0.5);text-decoration:none;">shrawanvedshree@gmail.com</a>
+  </div>
 </div>
 
 <script>
@@ -228,7 +231,7 @@ function handleGoogleToken(response){
 
   document.getElementById('loading-msg').textContent =
     role === 'owner'
-      ? 'Welcome back, Professor \u2014 opening dashboard\u2026'
+      ? 'Welcome back! \u2014 opening dashboard\u2026'
       : 'Access confirmed \u2014 opening your dashboard\u2026';
 
   setTimeout(function(){ window.location.href = 'dashboard.html'; }, 900);
