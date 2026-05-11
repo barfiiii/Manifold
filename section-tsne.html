@@ -520,6 +520,24 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 const eio=t=>t<.5?2*t*t:-1+(4-2*t)*t;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 function normalize(v){const n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-12?v.map(()=>0):v.map(x=>x/n)}
+
+/* Viridis colormap — dark purple→blue→teal→green→yellow (ML standard for heatmaps) */
+function heatColor(v){
+  v=Math.max(0,Math.min(1,v));
+  const stops=[
+    [68,1,84],    // 0.00 dark purple
+    [59,82,139],  // 0.25 blue
+    [33,145,140], // 0.50 teal
+    [94,201,98],  // 0.75 green
+    [253,231,37], // 1.00 yellow
+  ];
+  const idx=v*(stops.length-1);
+  const lo=Math.floor(idx),hi=Math.min(lo+1,stops.length-1),t=idx-lo;
+  const r=Math.round(stops[lo][0]+t*(stops[hi][0]-stops[lo][0]));
+  const g=Math.round(stops[lo][1]+t*(stops[hi][1]-stops[lo][1]));
+  const b=Math.round(stops[lo][2]+t*(stops[hi][2]-stops[lo][2]));
+  return `rgb(${r},${g},${b})`;
+}
 function drawArrow(ctx,x1,y1,x2,y2,color,lw=2){
   const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy),angle=Math.atan2(dy,dx),hl=Math.min(12,len*.25);
   if(len<2)return;
@@ -581,7 +599,63 @@ const DATASETS={iris:genIris(),moons:genMoons(),blobs:genBlobs(),swiss:genSwiss(
 /* ════════════════════════════════════════════════════
    STEP CANVAS DRAW ROUTINES
 ════════════════════════════════════════════════════ */
-// Step 1: similarity heatmap
+
+/* Draws a proper numerical similarity matrix with subtle colour backing */
+function drawMatrixViz(ctx, S, x0, y0, availW, availH, title, n, animFrac){
+  const csz = Math.min(Math.floor((availW-20)/n), Math.floor((availH-22)/n), 30);
+  const mW = csz*n, mH = csz*n;
+  const mx = x0 + Math.floor((availW - mW)/2);
+  const my = y0 + 18;
+
+  // Title
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='bold 10px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText(title, x0+availW/2, y0+2);
+
+  // Matrix brackets
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+  [[mx-3,my,mx-7,my,mx-7,my+mH,mx-3,my+mH],[mx+mW+3,my,mx+mW+7,my,mx+mW+7,my+mH,mx+mW+3,my+mH]].forEach(pts=>{
+    ctx.beginPath();ctx.moveTo(pts[0],pts[1]);ctx.lineTo(pts[2],pts[3]);ctx.lineTo(pts[4],pts[5]);ctx.lineTo(pts[6],pts[7]);ctx.stroke();
+  });
+
+  // Col headers
+  ctx.fillStyle='rgba(0,212,255,0.45)';ctx.font='6px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  for(let k=0;k<n;k++) ctx.fillText(k, mx+k*csz+csz/2, my-1);
+
+  // Row headers
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let k=0;k<n;k++) ctx.fillText(k, mx-9, my+k*csz+csz/2);
+
+  const total=n*n;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+    const idx=i*n+j;
+    let alpha=1;
+    if(animFrac!==null){const p=clamp(animFrac*(total+n)-idx,0,1);if(p<=0)continue;alpha=p;}
+    ctx.globalAlpha=alpha;
+    const cx=mx+j*csz, cy=my+i*csz;
+    const v=Math.max(0,Math.min(1,S[i][j]));
+
+    // Cell background — subtle Viridis tint
+    ctx.fillStyle=heatColor(v);ctx.globalAlpha=alpha*0.22;
+    ctx.fillRect(cx,cy,csz-1,csz-1);
+
+    // Diagonal highlight
+    if(i===j){ctx.fillStyle='rgba(255,255,255,0.07)';ctx.globalAlpha=alpha;ctx.fillRect(cx,cy,csz-1,csz-1);}
+
+    // Value text
+    ctx.globalAlpha=alpha;
+    const txt=i===j?'—':(v<0.005?'.00':v.toFixed(2).slice(1)); // ".82" format saves space
+    const bright=0.4+v*0.6;
+    ctx.fillStyle=`rgba(255,255,255,${bright})`;
+    ctx.font=`${csz>22?8:6}px JetBrains Mono,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(txt,cx+csz/2,cy+csz/2);
+  }
+  ctx.globalAlpha=1;
+}
+
+// Step 1: similarity matrix
 const rngS=seededRNG(42),DEMO_PTS=[];
 for(let i=0;i<12;i++)DEMO_PTS.push([randn(rngS)*2+(i<6?-1.5:1.5),randn(rngS)*1.5+(i<6?1:-1)]);
 
@@ -617,21 +691,15 @@ function drawStep1(t){
     ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(i,sx(p[0]),sy(p[1])-7);
   });
 
-  // Right: heatmap
-  const hX=lW+12,cellSz=Math.min((W-hX-12)/n,(H-40)/n);
-  const startX=hX,startY=(H-cellSz*n)/2;
-  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
-    const v=sim[i][j],prog=clamp(et*(n*n+n)-(i*n+j),0,1);
-    if(prog<=0)continue;
-    const r=Math.round(v*210+10),gb=Math.round((1-v)*40+10);
-    ctx.globalAlpha=prog;
-    ctx.fillStyle=`rgb(${r},${gb},${gb})`;
-    ctx.fillRect(startX+j*cellSz,startY+i*cellSz,cellSz-1,cellSz-1);
-  }
+  // Right: similarity matrix (numerical values)
+  const hX=lW+14, availW=W-hX-8, availH=H-8;
+  const animFrac=et*(n*n+n)/(n*n); // animate cell reveal
+  drawMatrixViz(ctx,sim,hX,4,availW,availH,'p_{j|i}  Similarity Matrix',n,et<0.01?null:animFrac);
+
   ctx.globalAlpha=1;
-  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px DM Sans,sans-serif';
+  // Colorbar legend removed — numbers speak for themselves
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px DM Sans,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='bottom';
-  ctx.fillText('p_{j|i} similarity matrix',startX+cellSz*n/2,H-2);
   ctx.fillText('Point cloud (2 groups)',lW/2,H-2);
 }
 
@@ -648,21 +716,7 @@ function drawStep2(t){
 
   const half=W/2-8;
   function drawHeat(S,x0,title){
-    const csz=Math.min((half-20)/n,(H-50)/n);
-    const sx0=x0+(half-csz*n)/2,sy0=(H-csz*n)/2-8;
-    let maxV=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(i!==j)maxV=Math.max(maxV,S[i][j]);
-    maxV=maxV||1;
-    for(let i=0;i<n;i++)for(let j=0;j<n;j++){
-      const v=S[i][j]/maxV,r=Math.round(v*220+10),gb=Math.round((1-v)*50+10);
-      ctx.fillStyle=`rgb(${r},${gb},${gb})`;
-      ctx.fillRect(sx0+j*csz,sy0+i*csz,csz-1,csz-1);
-    }
-    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='bold 11px DM Sans,sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(title,x0+half/2,4);
-    // Symmetry indicator
-    let symScore=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)symScore+=Math.abs(S[i][j]-S[j][i]);
-    ctx.fillStyle=symScore<0.001?'#10b981':'#f43f5e';ctx.font='10px JetBrains Mono,monospace';
-    ctx.textBaseline='bottom';ctx.fillText(symScore<0.001?'✓ symmetric':'✗ asymmetric',x0+half/2,H-2);
+    drawMatrixViz(ctx,S,x0,8,half,H-16,title,n,null);
   }
   drawHeat(simA,0,'p_{j|i} (asymmetric)');
   // Arrow
