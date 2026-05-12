@@ -6,7 +6,7 @@
 ---
 
 ## 🌐 Live Site
-**[barfiiii.github.io/Manifold/login.html](https://barfiiii.github.io/Manifold/login.html)**
+**[barfiiii.github.io/Manifold/login.html](https://barfiiii.github.io/Manifold/dashboard.html?v=2)**
 
 ---
 
