@@ -164,6 +164,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s,transform .7s}
 .reveal.visible{opacity:1;transform:translateY(0)}
 .footer{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;border-top:1px solid var(--border)}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:none;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:var(--surface,rgba(255,255,255,.05));color:var(--text);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
 </style>
 </head>
 <body>
@@ -171,6 +191,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 <nav class="nav">
   <a href="dashboard.html">&larr; Dashboard</a>
   <span class="nav-tag">06 &middot; GPR</span>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
 </nav>
 
 <!-- HERO -->
@@ -1530,6 +1551,15 @@ window.addEventListener('load',function(){
 
   renderQuiz();
 });
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
 </script>
 </body>
 </html>
