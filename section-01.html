@@ -195,6 +195,45 @@ body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color
 body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
 body.light #bg{opacity:0.05 !important;}
 
+
+/* ── Light mode: fix hardcoded #eef4ff titles & canvas ── */
+body.light h1,body.light h2,body.light h3,
+body.light .section-title,body.light .analogy-title,
+body.light .step-title,body.light .explorer-title,
+body.light .quiz-title,body.light .q-text,
+body.light .info-title,body.light .tech-name,
+body.light .why-title,body.light .ba-card-title,
+body.light .type-title,body.light .card-title-text,
+body.light .hero-title,body.light .eyebrow-title,
+body.light .insight-title,body.light .manifold-title{
+  color:#0f1b2d !important;
+}
+body.light .tech-desc{color:#3a5270 !important;}
+body.light .tech-when{color:#3a5270 !important;font-weight:600;}
+body.light .code-block{
+  color:#1a3a5c !important;
+  background:rgba(0,0,0,0.06) !important;
+  border-color:rgba(0,0,0,0.1) !important;
+}
+/* Keep all viz canvases dark — looks intentional */
+body.light canvas:not(#bg){
+  background:#1a2240 !important;
+  border-color:rgba(0,212,255,0.15) !important;
+}
+/* Fix tech-row cards */
+body.light .tech-row{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+body.light .tech-row:hover{
+  background:rgba(255,255,255,0.9) !important;
+}
+/* Fix before/after cards */
+body.light .ba-card{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+
 </style>
 </head>
 <body>
