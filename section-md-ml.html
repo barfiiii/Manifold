@@ -4,81 +4,139 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MD meets ML — From Trajectories to Latent Maps | MANIFOLD</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>From Polymers to Latent Maps — MD meets ML | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#060b1a;--s:rgba(255,255,255,.04);--b:rgba(255,255,255,.1);--t:#e8f4ff;--m:#8aa4c0;--c:#00d4ff;--g:#10b981;--o:#f59e0b;--r:#f43f5e}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);line-height:1.7}
-nav{position:sticky;top:0;background:rgba(6,11,26,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--b);padding:14px 28px;display:flex;justify-content:space-between;font-size:13px;z-index:5}
-nav a{color:var(--m);text-decoration:none}nav span{color:var(--m);font-family:'JetBrains Mono',monospace;font-size:12px}
-main{max-width:980px;margin:0 auto;padding:40px 24px 80px}
-.lab{font-size:11px;letter-spacing:3px;color:var(--c);text-transform:uppercase;margin-bottom:8px}
-h1{font-family:'Playfair Display',serif;font-size:clamp(28px,5vw,44px);line-height:1.15;margin-bottom:14px}
-h2{font-family:'Playfair Display',serif;font-size:24px;margin:48px 0 10px}
-p.lead{color:var(--m);max-width:720px;margin-bottom:22px}p{color:var(--m);margin-bottom:12px}p b{color:var(--t)}
-.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:18px 0}
-.flow div{flex:1;min-width:130px;background:var(--s);border:1px solid var(--b);border-radius:12px;padding:12px;font-size:12.5px;color:var(--m)}
-.flow b{display:block;color:var(--c);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 6px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--b);vertical-align:top}th{color:var(--c);font-size:11px;letter-spacing:1px;text-transform:uppercase}td:first-child{color:var(--t);width:36%}td{color:var(--m)}
-.panel{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:18px;margin:14px 0}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.row{grid-template-columns:1fr}}
-canvas{width:100%;display:block;background:rgba(0,0,0,.25);border-radius:10px}
-.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--m)}
-.ctl input[type=range]{accent-color:var(--c);width:170px}.ctl b{color:var(--t);font-family:'JetBrains Mono',monospace}
-button{background:var(--c);color:#04111f;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-family:inherit}
-button.alt{background:transparent;color:var(--t);border:1px solid var(--b)}button:disabled{opacity:.5;cursor:wait}
-.note{font-size:12.5px;border-left:3px solid var(--o);padding:6px 12px;color:var(--m);margin:12px 0;background:rgba(245,158,11,.06)}
-.stat{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--m);margin-top:8px}.stat b{color:var(--t)}
+:root{--bg:#e9e9e9;--card:#fff;--ink:#0d0d0d;--muted:#626262;--line:#efefef;--chip:#f3f3f3;--lime:#b7f36b;--forest:#0f3b1f;--orange:#ff6a2b;--tint:#eaffd0}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;font-size:16px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(233,233,233,.92);backdrop-filter:blur(10px);padding:12px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar a{font-size:13px;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:99px}
+.bar a:hover{background:var(--card);color:var(--ink)}
+.bar a.home{background:var(--forest);color:#fff;margin-right:8px}
+main{max-width:900px;margin:0 auto;padding:12px 20px 80px}
+.card{background:var(--card);border-radius:28px;padding:28px;margin:16px 0}
+.hero{background:var(--lime);padding:36px 32px}
+.chip{display:inline-block;font-size:12px;background:var(--forest);color:var(--lime);padding:4px 12px;border-radius:99px;margin-bottom:12px;letter-spacing:.5px}
+h1{font-size:clamp(28px,5vw,42px);font-weight:600;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+h2{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px}
+.num{display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--forest);color:var(--lime);align-items:center;justify-content:center;font-size:14px;margin-right:10px;vertical-align:middle}
+h3{font-size:16px;font-weight:600;margin:18px 0 4px}
+p{color:var(--muted);margin:8px 0}p b,li b{color:var(--ink);font-weight:500}
+ul{margin:6px 0 6px 20px;color:var(--muted)}li{margin:3px 0}
+.hero p{color:#274d2f;max-width:640px}
+.kicker{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}@media(max-width:720px){.two{grid-template-columns:1fr}}
+.tint{background:var(--tint);border-radius:18px;padding:14px 16px;color:#2f6b12;font-size:14.5px;margin:14px 0}.tint b{color:var(--forest)}
+.warn{background:#fff5ec;border:1px solid #ffd8bb;border-radius:18px;padding:14px 16px;color:#8a3d12;font-size:14.5px;margin:14px 0}
+svg text{font-family:Outfit,sans-serif}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:500}td:first-child{color:var(--ink);font-weight:500;width:26%}td{color:var(--muted)}
+canvas{width:100%;display:block;background:var(--chip);border-radius:18px}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0;font-size:14px;color:var(--muted)}
+.ctl input[type=range]{accent-color:var(--forest);width:160px}.ctl input[type=number]{width:64px;padding:5px 8px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit}
+.ctl b,.stat b{color:var(--ink);font-weight:500}
+button{background:var(--forest);color:#fff;border:0;border-radius:99px;padding:9px 18px;font-family:inherit;font-size:14px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--forest)}button:disabled{opacity:.5}
+.stat{font-size:13.5px;color:var(--muted);margin-top:10px;font-variant-numeric:tabular-nums}
+details{border-top:1px solid var(--line);padding:10px 0}details summary{cursor:pointer;font-weight:500;color:var(--ink)}details p{margin:6px 0 2px}
+.cap{font-size:12.5px;color:var(--muted);margin-top:6px}.cap a{color:var(--forest)}
+.rowgap{display:flex;gap:14px;flex-wrap:wrap}.rowgap>div{flex:1;min-width:180px}
 </style>
 </head>
 <body>
-<nav><a href="dashboard.html">&larr; Dashboard</a><span>10 &middot; MD meets ML</span><span></span></nav>
+<div class="bar"><a class="home" href="dashboard.html">&larr; Dashboard</a><a href="#s1">1 Polymers</a><a href="#s2">2 Structure</a><a href="#s3">3 Chitosan</a><a href="#s4">4 Temperature</a><a href="#s5">5 MD</a><a href="#s6">6 Numbers</a><a href="#s7">7 ML</a><a href="#s8">8 Check</a></div>
 <main>
-<div class="lab">Section 10</div>
-<h1>From molecular dynamics to a latent map</h1>
-<p class="lead">A machine-learning model never sees atoms. It sees a table of numbers. This section builds that table from a small molecular-dynamics simulation you can run in your browser, so you can see exactly where each ML concept comes from in the physics.</p>
+<div class="card hero"><span class="chip">SECTION 10</span>
+<h1>From polymers to a latent map</h1>
+<p>No background needed. We start with &ldquo;what is a polymer?&rdquo;, build up to how a molecular-dynamics simulation works, turn it into a table of numbers, and end with a machine-learning map that spots a structural transition. Each part is short; try the little demos as you go.</p></div>
 
-<div class="flow">
-<div><b>1 &middot; MD</b>Integrate Newton&rsquo;s equations at a set temperature</div>
-<div><b>2 &middot; Snapshots</b>Equilibrate, then record frames</div>
-<div><b>3 &middot; Descriptor</b>Turn each frame into numbers (e.g. local volume)</div>
-<div><b>4 &middot; Matrix</b>Rows = conditions, columns = features</div>
-<div><b>5 &middot; Scale + DR</b>Normalise 0&ndash;1, then PCA / t-SNE / UMAP</div>
-</div>
+<div class="card" id="s1"><h2><span class="num">1</span>What is a polymer?</h2>
+<div class="two"><div>
+<p>A <b>monomer</b> is a small molecule that can link to others. A <b>polymer</b> is many monomers joined into one long chain, like beads on a string or paper clips in a chain. &ldquo;Poly&rdquo; means many.</p>
+<p>A chain with 25 units is a <b>25-mer</b>; 100 units, a <b>100-mer</b>. The number of units is the <b>degree of polymerisation</b>. Plastics, rubber, DNA, proteins, cotton and the shell of a crab are all polymers.</p></div>
+<svg viewBox="0 0 320 150" width="100%" role="img" aria-label="monomer joined into a chain"><g fill="#b7f36b" stroke="#0f3b1f" stroke-width="2"><circle cx="30" cy="34" r="14"/></g><text x="52" y="38" font-size="13" fill="#626262">one monomer</text>
+<g stroke="#0f3b1f" stroke-width="2.5" fill="none"><path d="M24 100 q22 -34 44 0 t44 0 t44 0 t44 0 t44 0"/></g>
+<g fill="#b7f36b" stroke="#0f3b1f" stroke-width="2"><circle cx="24" cy="100" r="11"/><circle cx="68" cy="100" r="11"/><circle cx="112" cy="100" r="11"/><circle cx="156" cy="100" r="11"/><circle cx="200" cy="100" r="11"/><circle cx="244" cy="100" r="11"/><circle cx="288" cy="100" r="11"/></g>
+<text x="24" y="140" font-size="13" fill="#626262">many monomers joined &rarr; one polymer chain</text></svg></div></div>
 
-<h2>The vocabulary bridge</h2>
-<table>
-<tr><th>In molecular dynamics</th><th>In machine learning</th></tr>
-<tr><td>One temperature-equilibrated system (e.g. 25-mer at 340 K)</td><td>One <b>sample</b> (one row)</td></tr>
-<tr><td>Voronoi volume of each backbone atom</td><td>One <b>feature</b> (one column)</td></tr>
-<tr><td>Temperature (the thing you control)</td><td>A <b>label</b> used only to colour the map, never fed to the model</td></tr>
-<tr><td>Equilibration (discarded start of the run)</td><td>Burn-in: data cleaning before sampling</td></tr>
-<tr><td>Averaging many frames</td><td>Reducing noise in each sample</td></tr>
-<tr><td>Order parameter (e.g. &psi;<sub>6</sub>, density, Tg from a volume&ndash;T plot)</td><td>A hand-made, supervised-by-physics feature that needs prior knowledge</td></tr>
-<tr><td>Only 16&ndash;17 temperatures simulated</td><td>Tiny <b>n</b>, huge <b>d</b>: use PCA first; t-SNE perplexity must be &lt; n/3</td></tr>
-</table>
+<div class="card" id="s2"><h2><span class="num">2</span>Structure decides behaviour</h2>
+<p>Two plastics made of the same monomer can behave very differently, depending on how the chains are arranged.</p>
+<div class="rowgap">
+<div><svg viewBox="0 0 120 80" width="100%"><path d="M8 40 q14 -26 28 0 t28 0 t28 0 t20 0" stroke="#0f3b1f" stroke-width="3" fill="none"/></svg><h3>Linear</h3><p>One chain, no branches. Chains slide past each other.</p></div>
+<div><svg viewBox="0 0 120 80" width="100%"><path d="M8 50 L112 50 M36 50 L48 14 M70 50 L82 14 M92 50 L104 24" stroke="#0f3b1f" stroke-width="3" fill="none"/></svg><h3>Branched</h3><p>Side chains stop chains packing tightly.</p></div>
+<div><svg viewBox="0 0 120 80" width="100%"><path d="M6 20 L114 20 M6 60 L114 60 M30 20 L30 60 M60 20 L60 60 M90 20 L90 60" stroke="#0f3b1f" stroke-width="3" fill="none"/></svg><h3>Cross-linked</h3><p>Chains tied together: a network (rubber, gels).</p></div></div>
+<ul><li><b>Backbone</b>: the main chain of atoms. <b>Side groups</b>: pieces hanging off it.</li>
+<li><b>Amorphous</b> chains are tangled like cooked spaghetti; <b>crystalline</b> regions are neatly packed.</li>
+<li><b>Hydrogen bonds</b> are weak sticky links between chains (often O&ndash;H and N&ndash;H groups). Many of them make a polymer stiff and hard to melt.</li></ul></div>
 
-<h2>Step 1 &mdash; Run the molecular dynamics</h2>
-<p>A 2-D Lennard-Jones solid (64 particles, periodic box, velocity-Verlet, simple velocity-rescaling thermostat). Raise the temperature and watch the lattice lose order. Colour = local free-area proxy (area of a hexagon built from each particle&rsquo;s 6 nearest neighbours; it stands in for the Voronoi cell volume).</p>
-<div class="panel">
-<div class="ctl"><label>Target temperature T* <input id="T" type="range" min="0.15" max="1.3" step="0.05" value="0.3"></label><b id="Tv">0.30</b><button id="run">Pause</button><button class="alt" id="rst">Reset lattice</button></div>
-<div class="row"><div><canvas id="cv" width="420" height="380"></canvas></div><div><canvas id="hist" width="420" height="380"></canvas></div></div>
-<div class="stat">measured T* <b id="Tm">&ndash;</b> &nbsp; &psi;<sub>6</sub> <b id="p6">&ndash;</b> &nbsp; PE/atom <b id="pe">&ndash;</b></div>
-</div>
+<div class="card" id="s3"><h2><span class="num">3</span>Our example: chitosan</h2>
+<p>Chitosan comes from the shells of crabs and shrimp. It is a chain of <b>glucosamine</b> rings joined by oxygen bridges (<b>glycosidic oxygens</b>). It carries NH<sub>2</sub> and OH groups that form many hydrogen bonds, and it is used in wound dressings, drug delivery and hydrogels.</p>
+<div class="two"><div>
+<img id="chimg" alt="Chemical structure of chitosan" src="https://commons.wikimedia.org/wiki/Special:FilePath/Chitosan_chemical_structural_formula.svg?width=520" style="width:100%;background:#fff;border-radius:14px">
+<svg id="chfb" viewBox="0 0 320 150" width="100%" style="display:none"><g fill="none" stroke="#0f3b1f" stroke-width="2.5"><polygon points="40,50 58,38 76,50 76,72 58,84 40,72"/><polygon points="130,50 148,38 166,50 166,72 148,84 130,72"/><polygon points="220,50 238,38 256,50 256,72 238,84 220,72"/><path d="M76 61 L130 61 M166 61 L220 61"/></g><g font-size="12" fill="#626262" text-anchor="middle"><text x="103" y="55" fill="#ff6a2b">O</text><text x="193" y="55" fill="#ff6a2b">O</text><text x="58" y="108">NH&#8322;</text><text x="148" y="108">NH&#8322;</text><text x="238" y="108">NH&#8322;</text><text x="160" y="140">schematic: glucosamine rings joined by O bridges</text></g></svg>
+<p class="cap">Chitosan structure: Wikimedia Commons, public domain (CC0). If it does not load, a simplified drawing appears.</p></div>
+<div><div class="tint"><b>Why this matters here.</b> The study follows the <b>backbone glycosidic oxygens</b>. They are the same atoms in every chain, so each one can be tracked as a measurement point along the chain.</div>
+<p>The dataset uses chains of 25, 50 and 100 units (the 25-, 50- and 100-mers) so you can ask: does chain length change what we see?</p></div></div></div>
 
-<h2>Step 2 &mdash; Sweep temperature and build the data matrix</h2>
-<p>For each of 8 temperatures the script equilibrates, records 25 frames and averages a histogram of the local free-area of all particles. One temperature becomes one row of 24 numbers. Then it applies <b>global MinMax</b> and runs PCA &mdash; the same pipeline used on the polymer data.</p>
-<div class="panel"><div class="ctl"><button id="sweep">Run temperature sweep</button><span id="prog"></span></div>
-<div class="row"><div><canvas id="map" width="420" height="340"></canvas></div><div><canvas id="cmp" width="420" height="340"></canvas></div></div>
-<div class="stat" id="sstat">Press the button.</div></div>
-<div class="note"><b>How to read the right plot.</b> &psi;<sub>6</sub> is the classic order parameter: you have to know to look for six-fold order. PC1 is found with no physical knowledge at all. If the two curves follow each other, the unsupervised method has rediscovered the physics.</div>
+<div class="card" id="s4"><h2><span class="num">4</span>Temperature and the glass transition</h2>
+<div class="two"><div>
+<p>At low temperature the chains are nearly frozen: the material is hard and glassy. Heat it and the chains gain energy to wiggle and slide: it becomes soft and rubbery. The temperature of that change is the <b>glass transition temperature, Tg</b>.</p>
+<p><b>Free volume</b> is the empty space between chains. Think of a crowded room versus a dance floor: once there is room, people (chains) can move.</p>
+<p>The classic way to find Tg: plot volume against temperature. The slope changes at Tg.</p></div>
+<svg viewBox="0 0 300 210" width="100%" role="img" aria-label="volume versus temperature with a bend at Tg"><g stroke="#626262" stroke-width="1.5" fill="none"><path d="M40 20 V170 H280"/></g><path d="M50 150 L150 118" stroke="#0f3b1f" stroke-width="3"/><path d="M150 118 L270 48" stroke="#ff6a2b" stroke-width="3"/><circle cx="150" cy="118" r="6" fill="#b7f36b" stroke="#0f3b1f" stroke-width="2"/><line x1="150" y1="118" x2="150" y2="170" stroke="#626262" stroke-dasharray="4"/><g font-size="12" fill="#626262"><text x="146" y="188">Tg</text><text x="150" y="204" text-anchor="middle">temperature &rarr;</text><text x="8" y="100" transform="rotate(-90 14 100)">volume</text><text x="60" y="140" fill="#0f3b1f">glassy</text><text x="212" y="92" fill="#ff6a2b">rubbery</text></g></svg></div>
+<div class="tint"><b>The catch.</b> This needs you to know that volume is the thing to watch. Machine learning will look at the whole structure and show where things change, with no such assumption.</div></div>
 
-<h2>What is different from the polymer study</h2>
-<p><b>Identity of the features.</b> In the chain data, column <i>j</i> is always the same backbone atom, so a row is a fingerprint of that chain at one temperature. Fluid particles here are interchangeable, so we describe each system by a <i>distribution</i> (histogram) instead. Always ask what a column means before reading a latent map.</p>
-<p><b>Finite size.</b> With 64 particles the order loss is a smooth crossover, not a sharp jump. A latent-map &ldquo;transition&rdquo; from a small simulation can be a smooth bend; locating it precisely needs more atoms, finer temperature steps, and a physical check such as volume&ndash;T or energy&ndash;T.</p>
-<p><b>Thermostat.</b> Velocity rescaling is the simplest way to hold T. Production MD uses Nos&eacute;&ndash;Hoover or Langevin; the ML side does not change.</p>
-<div class="note">This is a teaching model (2-D, reduced units). Do not read its transition temperature as a real material property.</div>
+<div class="card" id="s5"><h2><span class="num">5</span>Molecular dynamics (MD): a movie of atoms</h2>
+<p>We cannot watch atoms in a lab, so we simulate them. MD works like a loop:</p>
+<ul><li><b>Force field</b>: rules for how atoms push and pull (bonds act like springs, atoms repel when too close).</li>
+<li><b>Newton&rsquo;s laws</b>: from the forces, compute each atom&rsquo;s acceleration, then move it a tiny <b>timestep</b> (about a femtosecond, 10<sup>-15</sup> s). Repeat millions of times.</li>
+<li><b>Temperature</b> is the average motion of the atoms. A <b>thermostat</b> keeps it at the value you choose.</li>
+<li><b>Equilibration</b>: run until the system forgets its starting structure; then save snapshots (the <b>trajectory</b>).</li></ul>
+<p>Below is a toy: 64 particles in 2-D with a simple force. It is not a polymer, but the loop is the same. Raise the temperature and watch the neat lattice lose its order. Colour shows each particle&rsquo;s local free area (blue = tight, orange = loose).</p>
+<div class="ctl"><label>Temperature <input id="T" type="range" min="0.15" max="1.3" step="0.05" value="0.3"></label><b id="Tv">0.30</b><button id="run">Pause</button><button class="ghost" id="rst">Reset</button></div>
+<div class="two"><canvas id="cv" width="420" height="380"></canvas><canvas id="hist" width="420" height="380"></canvas></div>
+<div class="stat">measured T <b id="Tm">&ndash;</b> &nbsp; order &psi;<sub>6</sub> <b id="p6">&ndash;</b> &nbsp; energy/atom <b id="pe">&ndash;</b> &nbsp; (&psi;<sub>6</sub> near 1 = perfect hexagonal order)</div></div>
+
+<div class="card" id="s6"><h2><span class="num">6</span>From atoms to numbers</h2>
+<p>ML needs a table. So each snapshot must become numbers. We use the <b>Voronoi cell volume</b>: the region of space closer to an atom than to any other. A big cell means a loosely packed neighbourhood; a small one, tight packing. Move the slider (it plays the role of heat jiggling the atoms) and watch the cells spread out.</p>
+<div class="ctl"><label>Jiggle <input id="vj" type="range" min="0" max="0.25" step="0.01" value="0.03"></label><button class="ghost" id="vs">New random draw</button></div>
+<canvas id="vor" width="620" height="260"></canvas>
+<div class="stat" id="vst"></div>
+<h3>How one data matrix is built</h3>
+<table><tr><th>Stage</th><th>What happens</th><th>Result</th></tr>
+<tr><td>Build</td><td>Pack 25 chains in a periodic box, minimise energy.</td><td>Start structure</td></tr>
+<tr><td>Equilibrate at T</td><td>Run MD (<i>typically NVT/NPT</i>) at 300, 310 &hellip; 460 K.</td><td>17 systems</td></tr>
+<tr><td>Descriptor</td><td>Voronoi volume of every atom.</td><td>1 number per atom</td></tr>
+<tr><td>Select</td><td>Keep the backbone oxygens: 25 chains &times; 25 atoms = 625.</td><td>A row of 625</td></tr>
+<tr><td>Stack</td><td>One row per temperature.</td><td>17 &times; 625 matrix</td></tr></table>
+<p><b>Rows are samples, columns are features.</b> Column <i>j</i> must be the same atom at every temperature, otherwise the model compares different atoms.</p>
+<div class="ctl"><b>Try your own size</b><label>chains <input id="nc" type="number" min="1" max="200" value="25"></label><label>atoms/chain <input id="na" type="number" min="1" max="500" value="25"></label><label>temperatures <input id="nt" type="number" min="3" max="100" value="17"></label></div>
+<div class="stat" id="calc"></div></div>
+
+<div class="card" id="s7"><h2><span class="num">7</span>From a table to a map</h2>
+<h3>Why reduce dimensions?</h3>
+<p>625 columns means each temperature is a point in 625-dimensional space, which nobody can look at. <b>Dimensionality reduction</b> squeezes it to 2-D while keeping what matters: points that were similar stay close.</p>
+<h3>Scale to 0&ndash;1 first</h3>
+<p>We apply <b>global MinMax</b>: the smallest value in the whole matrix becomes 0, the largest 1, everything else in between. Relative sizes stay intact, and no single large-valued column can dominate.</p>
+<h3>PCA, the shadow idea</h3>
+<p>PCA finds the direction along which the data varies most (PC1), then the next one at right angles (PC2). Like choosing the best angle to photograph a 3-D object so its shadow shows the most detail. t-SNE and UMAP are non-linear alternatives that preserve neighbourhoods.</p>
+<h3>Try it: sweep the toy simulation</h3>
+<p>This runs MD at 8 temperatures, records a 24-bin histogram of local free area for each (one row per temperature), applies global MinMax and PCA. The right plot compares PC1 with &psi;<sub>6</sub>, the hand-picked order parameter.</p>
+<div class="ctl"><button id="sweep">Run temperature sweep</button><span id="prog"></span></div>
+<div class="two"><canvas id="map" width="420" height="340"></canvas><canvas id="cmp" width="420" height="340"></canvas></div>
+<div class="stat" id="sstat">Press the button.</div>
+<div class="tint"><b>How to read it.</b> &psi;<sub>6</sub> only works because someone knew to look for six-fold order. PC1 was found without that knowledge. If the two curves follow each other, the unsupervised method has rediscovered the physics. In the polymer study the same idea is used on real Voronoi data to look for a bend around 380&ndash;400 K.</div>
+<div class="warn"><b>Honest limits.</b> This is a 2-D toy with 64 particles, so order fades smoothly instead of jumping. In the chain data each column is one fixed backbone atom; here particles are interchangeable, so we describe each system by a histogram instead. Do not read the toy&rsquo;s temperatures as real values.</div></div>
+
+<div class="card" id="s8"><h2><span class="num">8</span>Check yourself</h2>
+<details><summary>Why is temperature not used as a feature?</summary><p>It would hand the answer to the model. We only use it afterwards to colour the points.</p></details>
+<details><summary>In a 17 &times; 625 matrix, what is a sample and what is a feature?</summary><p>A sample is one temperature (a row). A feature is one backbone atom&rsquo;s Voronoi volume (a column).</p></details>
+<details><summary>PCA on 16 samples shows 100% variance in 2 components. Good news?</summary><p>No. It means the data has only two independent directions, which usually means it was generated by a 2-factor model rather than measured. Real simulation data has noise in many directions.</p></details>
+<details><summary>A map shows a bend near 390 K. Can we call that Tg?</summary><p>Only with a second check, such as the volume&ndash;temperature curve from the same runs, and ideally repeats with different random seeds. One run per temperature has no error bar.</p></details>
+<details><summary>What do t-SNE axes mean?</summary><p>Nothing physical. Only which points sit near each other, and the overall shape of the path, can be read.</p></details>
+<h3>Glossary</h3>
+<p><b>Monomer</b> repeat unit &middot; <b>Degree of polymerisation</b> units per chain &middot; <b>Backbone</b> main chain &middot; <b>Tg</b> glass transition temperature &middot; <b>Force field</b> rules for atomic forces &middot; <b>Timestep</b> one MD step &middot; <b>Thermostat</b> holds temperature &middot; <b>Equilibration</b> settling before recording &middot; <b>Trajectory</b> saved snapshots &middot; <b>Voronoi cell</b> region closest to one atom &middot; <b>Feature</b> one column &middot; <b>Sample</b> one row &middot; <b>PCA</b> linear projection onto directions of most variance.</p></div>
 </main>
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
@@ -125,22 +183,38 @@ System.prototype.local=function(){
 
 
 var B=24,LO=0.4,HI=1.6,DT=0.004,S=new System(0.85,8,8,7),TT=0.3,run=true;S.init(TT);
+function ramp(t){t=Math.max(0,Math.min(1,t));var a=[47,107,214],b=[255,106,43];return'rgb('+[0,1,2].map(function(k){return Math.round(a[k]+(b[k]-a[k])*t)}).join(',')+')';}
 var cv=document.getElementById('cv'),cx=cv.getContext('2d'),hc=document.getElementById('hist'),hx=hc.getContext('2d');
-function plasma(t){var P=[[13,8,135],[126,3,168],[204,71,120],[248,149,64],[240,249,33]];t=Math.max(0,Math.min(1,t));var x=t*4,i=Math.min(3,Math.floor(x)),f=x-i,a=P[i],b=P[i+1];return'rgb('+[0,1,2].map(function(k){return Math.round(a[k]+(b[k]-a[k])*f)}).join(',')+')';}
 function draw(){
-  var L=S.local(),W=cv.width,H=cv.height,sx=W/S.Lx,sy=H/S.Ly,i;
-  cx.clearRect(0,0,W,H);
-  for(i=0;i<S.N;i++){cx.fillStyle=plasma((L.A[i]-0.7)/0.9);cx.beginPath();cx.arc(S.x[i]*sx,S.y[i]*sy,Math.min(sx,sy)*0.5,0,6.283);cx.fill();}
+  var L=S.local(),W=cv.width,H=cv.height,sx=W/S.Lx,sy=H/S.Ly,i;cx.clearRect(0,0,W,H);
+  for(i=0;i<S.N;i++){cx.fillStyle=ramp((L.A[i]-0.7)/0.9);cx.beginPath();cx.arc(S.x[i]*sx,S.y[i]*sy,Math.min(sx,sy)*0.46,0,6.283);cx.fill();}
   var h=new Array(B).fill(0);L.A.forEach(function(a){var b=Math.max(0,Math.min(B-1,Math.floor((a-LO)/(HI-LO)*B)));h[b]++;});
   var w=hc.width,ht=hc.height,mx=Math.max.apply(null,h)||1;hx.clearRect(0,0,w,ht);
-  h.forEach(function(v,b){hx.fillStyle=plasma((b+.5)/B);var bh=(v/mx)*(ht-50);hx.fillRect(34+b*(w-44)/B,ht-30-bh,(w-44)/B-2,bh);});
-  hx.fillStyle='#8aa4c0';hx.font='11px DM Sans';hx.fillText('local free area  \u2192  (histogram, 1 frame)',34,ht-10);hx.fillText('count',2,16);
+  h.forEach(function(v,b){hx.fillStyle=ramp((b+.5)/B);var bh=(v/mx)*(ht-60);hx.fillRect(30+b*(w-40)/B,ht-34-bh,(w-40)/B-2,bh);});
+  hx.fillStyle='#626262';hx.font='13px Outfit';hx.fillText('local free area per particle  \u2192',30,ht-12);hx.fillText('how many particles',6,18);
   document.getElementById('Tm').textContent=S.temp().toFixed(2);document.getElementById('p6').textContent=L.psi6.toFixed(2);document.getElementById('pe').textContent=S.pe.toFixed(2);
 }
 function loop(){if(run){for(var k=0;k<8;k++)S.step(TT,DT);}draw();requestAnimationFrame(loop);}
 document.getElementById('T').oninput=function(){TT=+this.value;document.getElementById('Tv').textContent=TT.toFixed(2);};
 document.getElementById('run').onclick=function(){run=!run;this.textContent=run?'Pause':'Resume';};
 document.getElementById('rst').onclick=function(){S=new System(0.85,8,8,7);S.init(TT);};
+/* Voronoi picture: nearest-site colouring on a jittered lattice */
+var VR=rng(11),VO=[];for(var vi=0;vi<28;vi++)VO.push([VR()*2-1,VR()*2-1]);
+function vor(){
+  var c=document.getElementById('vor'),g=c.getContext('2d'),W=c.width,H=c.height,nx=7,ny=4,j=+document.getElementById('vj').value,sites=[],i,x,y;
+  for(i=0;i<28;i++){var cxn=i%nx,cyn=(i/nx)|0;sites.push([(cxn+.5+VO[i][0]*j*2)*W/nx,(cyn+.5+VO[i][1]*j*2)*H/ny]);}
+  var img=g.createImageData(W,H),cnt=new Array(28).fill(0),own=new Uint8Array(W*H);
+  for(y=0;y<H;y++)for(x=0;x<W;x++){var best=0,bd=1e18;for(i=0;i<28;i++){var dx=x-sites[i][0],dy=y-sites[i][1],d=dx*dx+dy*dy;if(d<bd){bd=d;best=i;}}own[y*W+x]=best;cnt[best]++;}
+  var mean=W*H/28;
+  for(y=0;y<H;y++)for(x=0;x<W;x++){var o=own[y*W+x],t=(cnt[o]/mean-0.2)/1.8,col=ramp(t).match(/\d+/g),p=(y*W+x)*4;
+    var edge=(x<W-1&&own[y*W+x+1]!==o)||(y<H-1&&own[(y+1)*W+x]!==o);
+    img.data[p]=edge?255:+col[0];img.data[p+1]=edge?255:+col[1];img.data[p+2]=edge?255:+col[2];img.data[p+3]=255;}
+  g.putImageData(img,0,0);g.fillStyle='#0f3b1f';sites.forEach(function(s){g.beginPath();g.arc(s[0],s[1],3,0,6.283);g.fill();});
+  var m=0,sd=0;cnt.forEach(function(v){m+=v/28});cnt.forEach(function(v){sd+=(v-m)*(v-m)/28});
+  document.getElementById('vst').innerHTML='cell volumes: spread (std / mean) <b>'+(Math.sqrt(sd)/m).toFixed(2)+'</b> &nbsp; smallest <b>'+(Math.min.apply(null,cnt)/m).toFixed(2)+'&times;</b> mean &nbsp; largest <b>'+(Math.max.apply(null,cnt)/m).toFixed(2)+'&times;</b> mean &nbsp; (dots = atoms, colour = cell volume)';
+}
+document.getElementById('vj').oninput=vor;document.getElementById('vs').onclick=function(){VO=[];for(var q=0;q<28;q++)VO.push([Math.random()*2-1,Math.random()*2-1]);vor();};vor();
+/* sweep + PCA */
 var temps=[0.2,0.35,0.5,0.65,0.8,0.95,1.1,1.25],RES=null;
 function sweep(){
   var btn=document.getElementById('sweep'),H=[],P=[],i=0;btn.disabled=true;run=false;
@@ -151,34 +225,36 @@ function sweep(){
     for(var f=0;f<F;f++){for(var q=0;q<20;q++)s.step(T,DT);var L=s.local();p6+=L.psi6/F;L.A.forEach(function(a){var b=Math.max(0,Math.min(B-1,Math.floor((a-LO)/(HI-LO)*B)));h[b]+=1/(F*s.N);});}
     H.push(h);P.push(p6);i++;document.getElementById('prog').textContent=' simulated '+i+' / '+temps.length+' temperatures';setTimeout(one,0);
   }
-  function finish(){
-    var mn=Infinity,mx=-Infinity;H.forEach(function(r){r.forEach(function(v){if(v<mn)mn=v;if(v>mx)mx=v;});});
+  function finish(){var mn=Infinity,mx=-Infinity;H.forEach(function(r){r.forEach(function(v){if(v<mn)mn=v;if(v>mx)mx=v;});});
     var G=H.map(function(r){return r.map(function(v){return(v-mn)/(mx-mn);});}),pc=MCore.pca(G,2);
-    RES={T:temps,H:H,psi6:P,pc:pc.projected,evr:pc.evr};plot();btn.disabled=false;run=true;document.getElementById('run').textContent='Pause';
-  }
+    RES={T:temps,psi6:P,pc:pc.projected,evr:pc.evr};plot();btn.disabled=false;run=true;document.getElementById('run').textContent='Pause';}
   one();
 }
 function plot(){
-  var r=RES,mc=document.getElementById('map'),m=mc.getContext('2d'),W=mc.width,H=mc.height,pad=36;m.clearRect(0,0,W,H);
+  var r=RES,mc=document.getElementById('map'),m=mc.getContext('2d'),W=mc.width,H=mc.height,pad=38;m.clearRect(0,0,W,H);
   var xs=r.pc.map(function(p){return p[0]}),ys=r.pc.map(function(p){return p[1]});
-  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys),yr=Math.max(y1-y0,0.2*(x1-x0));y0=(y0+y1)/2-yr/1.4;y1=y0+yr*1.4/1;
-  function X(v){return pad+(v-x0)/((x1-x0)||1)*(W-2*pad)}function Y(v){return H-pad-(v-y0)/((y1-y0)||1)*(H-2*pad)}
-  m.strokeStyle='rgba(255,255,255,.3)';m.beginPath();r.pc.forEach(function(p,i){i?m.lineTo(X(p[0]),Y(p[1])):m.moveTo(X(p[0]),Y(p[1]));});m.stroke();
-  r.pc.forEach(function(p,i){m.fillStyle=plasma(i/(r.pc.length-1));m.beginPath();m.arc(X(p[0]),Y(p[1]),7,0,6.283);m.fill();m.fillStyle='#e8f4ff';m.font='10px JetBrains Mono';m.fillText(r.T[i].toFixed(2),X(p[0])+9,Y(p[1])-6);});
-  m.fillStyle='#8aa4c0';m.font='11px DM Sans';m.fillText('PC1 ('+(r.evr[0]*100).toFixed(1)+'%)',W/2-30,H-8);m.save();m.translate(12,H/2+20);m.rotate(-Math.PI/2);m.fillText('PC2 ('+(r.evr[1]*100).toFixed(1)+'%)',0,0);m.restore();
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),ym=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2,yr=Math.max(Math.max.apply(null,ys)-Math.min.apply(null,ys),0.5*(x1-x0));
+  function X(v){return pad+(v-x0)/((x1-x0)||1)*(W-2*pad)}function Y(v){return H/2-(v-ym)/yr*(H-2*pad)}
+  m.strokeStyle='#c9c9c9';m.lineWidth=1.5;m.beginPath();r.pc.forEach(function(p,i){i?m.lineTo(X(p[0]),Y(p[1])):m.moveTo(X(p[0]),Y(p[1]));});m.stroke();
+  r.pc.forEach(function(p,i){m.fillStyle=ramp(i/(r.pc.length-1));m.beginPath();m.arc(X(p[0]),Y(p[1]),8,0,6.283);m.fill();m.fillStyle='#0d0d0d';m.font='12px Outfit';m.fillText(r.T[i].toFixed(2),X(p[0])+10,Y(p[1])-8);});
+  m.fillStyle='#626262';m.font='13px Outfit';m.fillText('PC1 ('+(r.evr[0]*100).toFixed(1)+'% of variance)',W/2-60,H-10);m.fillText('map of 8 temperatures (colour: blue cold \u2192 orange hot)',10,18);
   var cc=document.getElementById('cmp'),c=cc.getContext('2d');c.clearRect(0,0,W,H);
   function nrm(a){var lo=Math.min.apply(null,a),hi=Math.max.apply(null,a);return a.map(function(v){return(v-lo)/((hi-lo)||1)});}
   var pc1=r.pc.map(function(p){return p[0]});if(pc1[0]<pc1[pc1.length-1])pc1=pc1.map(function(v){return-v});
   var a=nrm(r.psi6),b=nrm(pc1),n=r.T.length;
   function CX(i){return pad+i/(n-1)*(W-2*pad)}function CY(v){return H-pad-v*(H-2*pad)}
-  [[a,'#f59e0b','\u03c86 (needs prior knowledge)'],[b,'#00d4ff','PC1 (unsupervised, sign-fixed)']].forEach(function(d,k){c.strokeStyle=d[1];c.lineWidth=2;c.beginPath();d[0].forEach(function(v,i){i?c.lineTo(CX(i),CY(v)):c.moveTo(CX(i),CY(v));});c.stroke();c.fillStyle=d[1];c.font='11px DM Sans';c.fillText(d[2],pad,18+k*15);});
-  c.fillStyle='#8aa4c0';c.fillText('temperature T*  \u2192   ('+r.T[0]+' \u2026 '+r.T[n-1]+')',W/2-80,H-8);c.fillText('scaled 0\u20131',2,H/2);
-  var d=0;for(var i=0;i<n;i++)d+=Math.abs(a[i]-b[i]);
-  var rr=(function(){var ma=a.reduce(function(s,v){return s+v},0)/n,mb=b.reduce(function(s,v){return s+v},0)/n,sa=0,sb=0,sab=0;for(var i=0;i<n;i++){sa+=(a[i]-ma)*(a[i]-ma);sb+=(b[i]-mb)*(b[i]-mb);sab+=(a[i]-ma)*(b[i]-mb);}return sab/Math.sqrt(sa*sb);})();
-  document.getElementById('sstat').innerHTML='matrix <b>'+n+' \u00d7 '+B+'</b> (samples \u00d7 features) &nbsp; PC1+PC2 <b>'+((r.evr[0]+r.evr[1])*100).toFixed(1)+'%</b> &nbsp; correlation(\u03c86 , PC1) <b>'+rr.toFixed(3)+'</b>';
+  [[a,'#ff6a2b','\u03c86 order parameter (needs prior knowledge)'],[b,'#0f3b1f','PC1 (found without it)']].forEach(function(d,k){c.strokeStyle=d[1];c.lineWidth=3;c.beginPath();d[0].forEach(function(v,i){i?c.lineTo(CX(i),CY(v)):c.moveTo(CX(i),CY(v));});c.stroke();c.fillStyle=d[1];c.font='13px Outfit';c.fillText(d[2],pad,20+k*18);});
+  c.fillStyle='#626262';c.fillText('temperature  \u2192',W/2-40,H-10);
+  var ma=a.reduce(function(s,v){return s+v},0)/n,mb=b.reduce(function(s,v){return s+v},0)/n,sa=0,sb=0,sab=0;for(var i=0;i<n;i++){sa+=(a[i]-ma)*(a[i]-ma);sb+=(b[i]-mb)*(b[i]-mb);sab+=(a[i]-ma)*(b[i]-mb);}
+  document.getElementById('sstat').innerHTML='matrix <b>'+n+' \u00d7 '+B+'</b> (samples \u00d7 features) &nbsp; PC1+PC2 <b>'+((r.evr[0]+r.evr[1])*100).toFixed(1)+'%</b> &nbsp; correlation(\u03c86, PC1) <b>'+(sab/Math.sqrt(sa*sb)).toFixed(3)+'</b>';
 }
-loop();
 document.getElementById('sweep').onclick=sweep;
+function calc(){var c=+document.getElementById('nc').value||1,a=+document.getElementById('na').value||1,n=+document.getElementById('nt').value||3,d=c*a;
+ document.getElementById('calc').innerHTML='matrix <b>'+n+' \u00d7 '+d+'</b> &nbsp; features per sample <b>'+d+'</b> &nbsp; features \u00f7 samples <b>'+(d/n).toFixed(0)+'\u00d7</b><br>most non-zero PCA components possible: <b>'+(n-1)+'</b> (one fewer than samples) &nbsp; t-SNE perplexity at most about <b>'+Math.max(1,Math.floor((n-1)/3))+'</b>';}
+['nc','na','nt'].forEach(function(i){document.getElementById(i).oninput=calc;});calc();
+var im=document.getElementById('chimg');function chfb(){im.style.display='none';document.getElementById('chfb').style.display='block';}
+if(im.complete&&im.naturalWidth===0)chfb();else im.addEventListener('error',chfb);
+loop();
 </script>
 </body>
 </html>
