@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>t-SNE — t-Distributed Stochastic Neighbour Embedding | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -178,6 +179,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <div id="prog"></div>
@@ -571,11 +575,9 @@ function drawArrow(ctx,x1,y1,x2,y2,color,lw=2){
    DATASETS
 ════════════════════════════════════════════════════ */
 function genIris(){
-  const rng=seededRNG(42);
-  const cls=[{m:[5.01,3.42,1.46,0.24],s:[0.35,0.38,0.17,0.10]},{m:[5.94,2.77,4.26,1.33],s:[0.52,0.31,0.47,0.20]},{m:[6.59,2.97,5.55,2.03],s:[0.64,0.32,0.55,0.27]}];
-  const data=[],labels=[];
-  for(let c=0;c<3;c++) for(let i=0;i<30;i++){data.push(cls[c].m.map((m,j)=>m+randn(rng)*cls[c].s[j]));labels.push(c);}
-  return{name:'Iris Flowers',data,labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'90 flowers · 3 species · 4 features · Should form 3 distinct clusters'};
+  const __s=MCore.irisSample(30);
+  const data=__s.data,labels=__s.labels;
+  return{name:'Iris Flowers',data,labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'90 flowers · 3 species · 4 features · Should form 3 distinct clusters (real Fisher Iris)'};
 }
 function genMoons(){
   const rng=seededRNG(456);
@@ -976,9 +978,12 @@ function computeP(data,perplexity=30){
   for(let i=0;i<n;i++){
     const Di=new Float64Array(n);
     for(let j=0;j<n;j++)Di[j]=j===i?0:D[i][j];
-    let betaMin=-Infinity,betaMax=Infinity,beta=1;
+    let betaMin=-Infinity,betaMax=Infinity;
+    // scale-aware start: beta ~ 1 / mean squared distance, so unscaled data doesn't degenerate to one-hot rows
+    let msd=0,cnt=0;for(let j=0;j<n;j++){if(j!==i){msd+=D[i][j];cnt++;}}
+    let beta=cnt&&msd>0?cnt/msd:1;
     let{H,P:Pi}=computePerplexity(Di,beta);
-    for(let iter=0;iter<50;iter++){
+    for(let iter=0;iter<100;iter++){
       if(Math.abs(H-targetH)<1e-5)break;
       if(H>targetH){betaMin=beta;beta=betaMax===Infinity?beta*2:(beta+betaMax)/2;}
       else{betaMax=beta;beta=betaMin===-Infinity?beta/2:(beta+betaMin)/2;}
@@ -991,7 +996,7 @@ function computeP(data,perplexity=30){
   const Psym=[];
   for(let i=0;i<n;i++)Psym.push(new Float64Array(n));
   for(let i=0;i<n;i++) for(let j=0;j<n;j++) Psym[i][j]=(P[i][j]+P[j][i])/(2*n);
-  // Early exaggeration
+  // floor to avoid log(0) in the cost
   for(let i=0;i<n;i++) for(let j=0;j<n;j++) Psym[i][j]=Math.max(Psym[i][j],1e-12);
   return Psym;
 }
@@ -1014,7 +1019,7 @@ function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
   for(let i=0;i<n;i++) for(let j=0;j<n;j++){
     if(i===j)continue;
     const pij=exagg*P[i][j],qij=num[i][j]/sumQ;
-    if(pij>1e-14&&qij>1e-14)cost+=pij*Math.log(pij/qij);
+    const p0=P[i][j];if(p0>1e-14&&qij>1e-14)cost+=p0*Math.log(p0/qij); // KL(P||Q) with the TRUE P, even while exaggerating
     const f=4*(pij-qij)*num[i][j];
     grads[i][0]+=f*(Y[i][0]-Y[j][0]);
     grads[i][1]+=f*(Y[i][1]-Y[j][1]);
@@ -1027,6 +1032,8 @@ function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
     vy[i][d2]=momentum*vy[i][d2]-lr*gains[i][d2]*grads[i][d2];
     Y[i][d2]+=vy[i][d2];
   }
+  // re-centre the embedding (standard; stops drift)
+  for(let d2=0;d2<2;d2++){let m=0;for(let i=0;i<n;i++)m+=Y[i][d2];m/=n;for(let i=0;i<n;i++)Y[i][d2]-=m;}
   return cost;
 }
 
@@ -1066,23 +1073,7 @@ function initTSNE(dsKey){
 }
 
 // Simple PCA 2D for comparison
-function computePCA2D(data){
-  const n=data.length,d=data[0].length;
-  const mean=Array(d).fill(0);
-  for(const p of data) p.forEach((v,j)=>mean[j]+=v/n);
-  const c=data.map(p=>p.map((v,j)=>v-mean[j]));
-  // Power iteration for top 2 PCs
-  function topPC(mat,rng){
-    let v=Array.from({length:d},()=>randn(rng));const nm=Math.sqrt(v.reduce((s,x)=>s+x*x,0));v=v.map(x=>x/nm);
-    for(let it=0;it<120;it++){let nv=Array(d).fill(0);for(const row of mat){const proj=row.reduce((s,x,k)=>s+x*v[k],0);for(let k=0;k<d;k++)nv[k]+=proj*row[k]/n;}const nn=Math.sqrt(nv.reduce((s,x)=>s+x*x,0));v=nv.map(x=>x/nn);}
-    return v;
-  }
-  const rng=seededRNG(99);
-  const v1=topPC(c,rng);
-  const c2=c.map(p=>{const s=p.reduce((a,x,k)=>a+x*v1[k],0);return p.map((x,k)=>x-s*v1[k]);});
-  const v2=topPC(c2,rng);
-  return c.map(p=>[p.reduce((a,x,k)=>a+x*v1[k],0),p.reduce((a,x,k)=>a+x*v2[k],0)]);
-}
+function computePCA2D(data){return MCore.pca(data,2).projected;}
 
 function toggleTSNE(){
   if(TSNE_STATE.iter>=TSNE_STATE.maxIter){restartTSNE();return;}

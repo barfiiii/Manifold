@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Isomap &mdash; Isometric Mapping | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -173,6 +174,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <div id="prog"></div>
@@ -470,6 +474,7 @@ body.light #bg{opacity:0.05 !important;}
         <button class="ds-btn" data-ds="blobs">&#128309; Gaussian Blobs</button>
       </div>
       <div id="ds-info"></div>
+      <div id="iso-warn" role="status" style="color:#f59e0b;font-size:12px;min-height:16px;margin:-14px 0 18px"></div>
       <div class="ex-layout">
         <div>
           <canvas id="ex-cvs"></canvas>
@@ -559,137 +564,29 @@ function dist2(a,b){
 /* ═══════════════════════════════════════
    ISOMAP MATH
 ═══════════════════════════════════════ */
-function buildKNN(data,k){
-  var n=data.length;
-  var knn=[];
-  for(var i=0;i<n;i++){
-    var dists=[];
-    for(var j=0;j<n;j++){
-      if(i===j)continue;
-      dists.push({j:j,d:dist2(data[i],data[j])});
-    }
-    dists.sort(function(a,b){return a.d-b.d;});
-    knn.push(dists.slice(0,k));
-  }
-  return knn;
+function buildKNN(data,k){return MCore.symKNN(data,k);   // UNDIRECTED kNN graph (an edge if either point is a neighbour of the other)
 }
 
 function dijkstraAll(knn,n){
-  var INF=1e18;
-  var D=Array.from({length:n},function(){return new Float64Array(n).fill(INF);});
-  for(var i=0;i<n;i++){
-    // Dijkstra from source i
-    var dist=new Float64Array(n).fill(INF);
-    dist[i]=0;
-    var visited=new Uint8Array(n);
-    for(var iter=0;iter<n;iter++){
-      // find unvisited min
-      var u=-1,best=INF;
-      for(var v=0;v<n;v++){if(!visited[v]&&dist[v]<best){best=dist[v];u=v;}}
-      if(u===-1)break;
-      visited[u]=1;
-      var nbrs=knn[u];
-      for(var ni=0;ni<nbrs.length;ni++){
-        var vv=nbrs[ni].j,w=nbrs[ni].d;
-        if(dist[u]+w<dist[vv])dist[vv]=dist[u]+w;
-      }
-    }
-    for(var j=0;j<n;j++)D[i][j]=dist[j];
-  }
-  return D;
+  var D=MCore.dijkstraAll(knn);
+  return D.map(function(r){var o=new Float64Array(n);for(var j=0;j<n;j++)o[j]=isFinite(r[j])?r[j]:1e18;return o;});
 }
 
 function classicalMDS(D,dims){
-  var n=D.length;
-  // Square distances
-  var D2=Array.from({length:n},function(_,i){return Array.from({length:n},function(_2,j){return D[i][j]*D[i][j];});});
-  // Double center: B = -0.5 * H * D2 * H
-  // H = I - (1/n) * 11^T
-  // B[i][j] = -0.5*(D2[i][j] - rowMean[i] - colMean[j] + grandMean)
-  var rowMean=Array(n).fill(0);
-  var grandMean=0;
-  for(var i=0;i<n;i++){
-    for(var j=0;j<n;j++)rowMean[i]+=D2[i][j];
-    rowMean[i]/=n;
-    grandMean+=rowMean[i];
-  }
-  grandMean/=n;
-  var colMean=Array(n).fill(0);
-  for(var j=0;j<n;j++){for(var i=0;i<n;i++)colMean[j]+=D2[i][j];colMean[j]/=n;}
-  var B=Array.from({length:n},function(_,i){
-    return Array.from({length:n},function(_2,j){
-      return -0.5*(D2[i][j]-rowMean[i]-colMean[j]+grandMean);
-    });
-  });
-  // Power iteration for top dims eigenvectors
-  var rng=seededRNG(42);
-  var lambdas=[],vecs=[];
-  var Bcopy=B.map(function(r){return r.slice();});
-  for(var di=0;di<dims;di++){
-    var v=Array.from({length:n},function(){return randn(rng);});
-    var nm=Math.sqrt(v.reduce(function(s,x){return s+x*x;},0));
-    v=v.map(function(x){return x/nm;});
-    for(var it=0;it<300;it++){
-      var Bv=Array(n).fill(0);
-      for(var ii=0;ii<n;ii++)for(var jj=0;jj<n;jj++)Bv[ii]+=Bcopy[ii][jj]*v[jj];
-      nm=Math.sqrt(Bv.reduce(function(s,x){return s+x*x;},0));
-      if(nm<1e-10)break;
-      v=Bv.map(function(x){return x/nm;});
-    }
-    var Bv2=Array(n).fill(0);
-    for(var ii2=0;ii2<n;ii2++)for(var jj2=0;jj2<n;jj2++)Bv2[ii2]+=Bcopy[ii2][jj2]*v[jj2];
-    var lam=v.reduce(function(s,x,i2){return s+x*Bv2[i2];},0);
-    lambdas.push(Math.max(0,lam));
-    vecs.push(v);
-    // deflate
-    for(var ii3=0;ii3<n;ii3++)for(var jj3=0;jj3<n;jj3++)Bcopy[ii3][jj3]-=lam*v[ii3]*v[jj3];
-    rng=seededRNG(99+di*13);
-  }
-  // Y = V_k * sqrt(Lambda_k)
-  var Y=Array.from({length:n},function(_,i){
-    return vecs.map(function(v2,di2){return v2[i]*Math.sqrt(lambdas[di2]);});
-  });
-  return{Y:Y,lambdas:lambdas};
+  // exact top-eigenvalue MDS (handles the indefinite B that geodesic distances can produce)
+  var n=D.length,maxD=0,i,j;
+  for(i=0;i<n;i++)for(j=0;j<n;j++)if(D[i][j]<1e17&&D[i][j]>maxD)maxD=D[i][j];
+  var Df=D.map(function(r){return Array.prototype.map.call(r,function(v){return v>1e17?maxD*2:v;});});
+  var r=MCore.classicalMDS(Df,dims);return{Y:r.Y,lambdas:r.lambdas};
 }
 
 function computeIsomap(data,k){
-  var knn=buildKNN(data,k);
-  var D=dijkstraAll(knn,data.length);
-  // Replace INF with max finite value (disconnected graph handling)
-  var maxD=0;
-  for(var i=0;i<D.length;i++)for(var j=0;j<D[i].length;j++)if(D[i][j]<1e17&&D[i][j]>maxD)maxD=D[i][j];
-  for(var i2=0;i2<D.length;i2++)for(var j2=0;j2<D[i2].length;j2++)if(D[i2][j2]>1e17)D[i2][j2]=maxD*2;
-  var res=classicalMDS(D,2);
-  return{knn:knn,D:D,Y:res.Y,lambdas:res.lambdas,maxD:maxD};
+  // k is kept exactly as chosen: too-small k really does disconnect the graph (a lesson of this page) — we flag it.
+  var r=MCore.isomap(data,k,{autoK:false});
+  return{knn:r.knn,D:r.D,Y:r.Y,lambdas:r.lambdas,maxD:r.maxD,disconnected:r.disconnected};
 }
 
-function computePCA2(data){
-  var n=data.length,d=data[0].length;
-  var mean=Array(d).fill(0);
-  data.forEach(function(p){p.forEach(function(v,j){mean[j]+=v/n;});});
-  var c=data.map(function(p){return p.map(function(v,j){return v-mean[j];});});
-  var cov=Array.from({length:d},function(){return Array(d).fill(0);});
-  c.forEach(function(p){for(var i=0;i<d;i++)for(var j=0;j<d;j++)cov[i][j]+=p[i]*p[j]/n;});
-  var rng=seededRNG(11);
-  function powerV(M,seed){
-    var rng2=seededRNG(seed);
-    var v=Array.from({length:d},function(){return randn(rng2);});
-    var nm=Math.sqrt(v.reduce(function(s,x){return s+x*x;},0));v=v.map(function(x){return x/nm;});
-    for(var it=0;it<200;it++){
-      var Mv=Array(d).fill(0);for(var i=0;i<d;i++)for(var j=0;j<d;j++)Mv[i]+=M[i][j]*v[j];
-      nm=Math.sqrt(Mv.reduce(function(s,x){return s+x*x;},0));if(nm<1e-12)break;v=Mv.map(function(x){return x/nm;});
-    }
-    var Mv2=Array(d).fill(0);for(var i2=0;i2<d;i2++)for(var j2=0;j2<d;j2++)Mv2[i2]+=M[i2][j2]*v[j2];
-    var lam=v.reduce(function(s,x,i3){return s+x*Mv2[i3];},0);
-    return{v:v,lam:lam};
-  }
-  var r1=powerV(cov,11);
-  var cov2=cov.map(function(row,i){return row.map(function(val,j){return val-r1.lam*r1.v[i]*r1.v[j];});});
-  var r2=powerV(cov2,22);
-  return c.map(function(p){
-    return[p.reduce(function(s,v,j){return s+v*r1.v[j];},0),p.reduce(function(s,v,j){return s+v*r2.v[j];},0)];
-  });
-}
+function computePCA2(data){return MCore.pca(data,2).projected;}
 
 /* ═══════════════════════════════════════
    DATASETS
@@ -1104,6 +1001,7 @@ function initExplorer(dsKey){
   var iso=computeIsomap(ds.data,k);
   var pca=computePCA2(ds.data);
   EX={ds:ds,iso:iso,pca:pca,k:k};
+  document.getElementById('iso-warn').textContent=iso.disconnected?'⚠ k='+k+' leaves the neighbourhood graph DISCONNECTED — some geodesic distances are infinite (drawn here as 2× the largest finite distance, which is artificial). Increase k.':'';
   exT=0;exRunning=false;exLastTs=null;showPCA=false;
   document.getElementById('play-btn').innerHTML='&#9654; Play Pipeline';
   document.getElementById('cmp-btn').textContent='Show PCA';

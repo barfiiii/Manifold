@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>What is Dimensionality Reduction — Manifold</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -309,6 +310,9 @@ body.light .ba-card{
 }
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 
@@ -420,7 +424,7 @@ body.light .ba-card{
           that capture most of the variation. These new features aren't the original ones —
           they're mathematical combinations of them, designed to be as informative as possible.
         </div>
-        <span class="step-example">✨ 30 features → 3 summary features, ~90% of information kept</span>
+        <span class="step-example">✨ e.g. 30 features → 3 summary features, ideally keeping most (say ~90%) of the variation</span>
       </div>
     </div>
     <div class="step">
@@ -430,7 +434,7 @@ body.light .ba-card{
         <div class="step-text">
           With 2 or 3 dimensions, we can plot the data and actually look at it.
           Patients with similar health profiles appear close together.
-          Outliers become visible. Patterns emerge. Models trained on this data are faster and more accurate.
+          Outliers become visible. Patterns emerge. Models trained on this data are often faster, and sometimes more accurate.
         </div>
         <span class="step-example">📍 Similar patients cluster together on a 2D plot</span>
       </div>
@@ -450,10 +454,10 @@ body.light .ba-card{
 
   <div class="ba-card">
     <div class="ba-card-title">Iris Dataset — 4 Features Reduced to 2</div>
-    <div class="ba-card-sub">150 flowers · 3 species · 4 measurements each. After reduction, species become visible.</div>
+    <div class="ba-card-sub">150 flowers · 3 species · 4 measurements each. After reduction, the species are easier to tell apart.</div>
     <div class="ba-grid">
       <div>
-        <div class="ba-side-label" style="color:var(--rose);">Before — 4 dimensions</div>
+        <div class="ba-side-label" style="color:var(--rose);">Before — raw view (2 of the 4 features)</div>
         <canvas class="ba-c" id="beforeCanvas" height="260"></canvas>
       </div>
       <div class="ba-arrow-col">→</div>
@@ -463,10 +467,8 @@ body.light .ba-card{
       </div>
     </div>
     <div class="ba-note">
-      💡 <strong>Notice:</strong> In the 4D view, the three species are jumbled together.
-      After reducing to 2 dimensions, the <span style="color:#f43f5e;font-weight:500;">Setosa</span> species separates perfectly,
-      and the other two become much clearer — yet we only kept <strong>2 out of 4 features.</strong>
-      This is dimensionality reduction working exactly as intended.
+      💡 <strong>Notice:</strong> In the raw view, <span style="color:#f43f5e;font-weight:500;">Setosa</span> is already separate, but Versicolor and Virginica overlap heavily.
+      After PCA, the first two components keep <strong id="irisEvr">~98%</strong> of the total variance (measured from the data) and the two overlapping species are pulled apart much more &mdash; though not perfectly.
     </div>
   </div>
 </section>
@@ -486,7 +488,7 @@ body.light .ba-card{
     <div class="why-card">
       <div class="why-icon">🧹</div>
       <div class="why-title">To Remove Noise</div>
-      <div class="why-body">Not every feature is useful. Some are just noise — random variation that confuses the analysis. Reduction keeps the signal and discards the noise.</div>
+      <div class="why-body">Not every feature is useful. Some are just noise — random variation that confuses the analysis. Reduction tends to keep the dominant variation and can suppress noise &mdash; but it can also throw away small-but-useful signal, so it is not guaranteed.</div>
     </div>
     <div class="why-card">
       <div class="why-icon">⚡</div>
@@ -605,7 +607,7 @@ body.light .ba-card{
       <div class="tech-dot" style="background:var(--green);"></div>
       <div class="tech-name">UMAP</div>
       <div class="tech-type" style="background:rgba(16,185,129,.1);color:var(--green);">Non-Linear</div>
-      <div class="tech-desc">Similar to t-SNE but faster and better at preserving the global structure. The modern go-to for visualisation.</div>
+      <div class="tech-desc">Similar to t-SNE but faster, and often better at preserving global structure (largely thanks to its initialisation). A popular go-to for visualisation.</div>
       <div class="tech-when">Best for: large datasets</div>
     </div>
     <div class="tech-row">
@@ -712,19 +714,15 @@ window.addEventListener('scroll',()=>{
 const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.1});
 document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 
-/* iris-like data */
+/* real Iris data */
 function genIris(){
-  const cls=[
-    {col:'#f43f5e',cx:[-.5,.3],spread:.55},
-    {col:'#00d4ff',cx:[.7,-.5],spread:.5},
-    {col:'#10b981',cx:[1.8,.4],spread:.48},
-  ];
-  return cls.flatMap(c=>Array.from({length:50},()=>({
-    x:c.cx[0]+(Math.random()-.5)*c.spread*2,
-    y:c.cx[1]+(Math.random()-.5)*c.spread*2,
-    x4:Math.random(),y4:Math.random(),
-    col:c.col,
-  })));
+  // REAL Fisher Iris. "Before" = two raw features (sepal length vs width); "After" = real PCA top-2 (computed here).
+  const I=MCore.IRIS,cols=['#f43f5e','#00d4ff','#10b981'];
+  const pc=MCore.pca(I.data,2),P=pc.projected;
+  const norm=(a)=>{const mn=Math.min(...a),mx=Math.max(...a);return a.map(v=>(v-mn)/(mx-mn)*5.2-2.6);};
+  const px=norm(P.map(p=>p[0])),py=norm(P.map(p=>p[1])),rx=norm(I.data.map(r=>r[0])),ry=norm(I.data.map(r=>r[1]));
+  window.IRIS_EVR=(pc.evr[0]+pc.evr[1])*100;
+  return I.data.map((r,i)=>({x:px[i],y:py[i],rx:rx[i],ry:ry[i],col:cols[I.labels[i]]}));
 }
 const iris=genIris();
 
@@ -740,12 +738,12 @@ function drawCanvas(id,use2D){
   if(!use2D){
     // noisy 4D projected as scatter
     iris.forEach(p=>{
-      const px=m+p.x4*(W-2*m);const py=m+p.y4*(H-2*m);
+      const px=sc(p.rx);const py=sy(p.ry);
       ctx.beginPath();ctx.arc(px,py,3.2,0,Math.PI*2);
       ctx.fillStyle=p.col+'80';ctx.fill();
     });
     ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='11px Inter';
-    ctx.fillText('Raw 4D data — species are mixed together',m,H-10);
+    ctx.fillText('Raw features: sepal length vs sepal width',m,H-10);
   } else {
     iris.forEach(p=>{
       ctx.beginPath();ctx.arc(sc(p.x),sy(p.y),3.2,0,Math.PI*2);
@@ -761,6 +759,7 @@ function drawCanvas(id,use2D){
     ctx.fillText('PC1 →',W-50,H-10);
   }
 }
+{const e=document.getElementById('irisEvr');if(e)e.textContent=window.IRIS_EVR.toFixed(1)+'%';}
 drawCanvas('beforeCanvas',false);drawCanvas('afterCanvas',true);
 window.addEventListener('resize',()=>{drawCanvas('beforeCanvas',false);drawCanvas('afterCanvas',true);});
 

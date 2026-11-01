@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Compare Techniques | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -121,6 +122,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <div id="prog"></div>
@@ -197,6 +201,7 @@ body.light #bg{opacity:0.05 !important;}
     <div class="canvas-hd">
       <div>
         <div class="canvas-hd-label" id="card-title-a" style="color:var(--pca)">PCA</div>
+        <div class="canvas-hd-sub" id="metrics-a" style="color:var(--accent)"></div>
         <div class="canvas-hd-sub" id="card-sub-a">Principal Component Analysis</div>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="card-time-a"></div>
@@ -216,6 +221,7 @@ body.light #bg{opacity:0.05 !important;}
     <div class="canvas-hd">
       <div>
         <div class="canvas-hd-label" id="card-title-b" style="color:var(--iso)">Isomap</div>
+        <div class="canvas-hd-sub" id="metrics-b" style="color:var(--accent)"></div>
         <div class="canvas-hd-sub" id="card-sub-b">Isometric Mapping</div>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="card-time-b"></div>
@@ -275,11 +281,9 @@ function genMoons(){
   return{name:'Two Moons',data:data,labels:labels,colors:['#00d4ff','#f43f5e'],cn:['Upper','Lower'],desc:'120 pts · 2D+noise · 2 classes'};
 }
 function genIris(){
-  var rng=seededRNG(42);
-  var cls=[{m:[5.01,3.42,1.46,0.24],s:[0.35,0.38,0.17,0.10]},{m:[5.94,2.77,4.26,1.33],s:[0.52,0.31,0.47,0.20]},{m:[6.59,2.97,5.55,2.03],s:[0.64,0.32,0.55,0.27]}];
-  var data=[],labels=[];
-  for(var c=0;c<3;c++)for(var i=0;i<40;i++){data.push(cls[c].m.map(function(m,j){return m+randn(rng)*cls[c].s[j];}));labels.push(c);}
-  return{name:'Iris Flowers',data:data,labels:labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'120 pts · 4D · 3 species'};
+  var __s=MCore.irisSample(40);
+  var data=__s.data,labels=__s.labels;
+  return{name:'Iris Flowers',data:data,labels:labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'120 pts · 4D · 3 species (real Fisher Iris)'};
 }
 function genBlobs(){
   var rng=seededRNG(789);
@@ -306,26 +310,8 @@ var DATASETS={swiss:genSwiss(),moons:genMoons(),iris:genIris(),blobs:genBlobs(),
 
 /* ── PCA ── */
 function runPCA(data){
-  var n=data.length,d=data[0].length;
-  var mean=Array(d).fill(0);
-  data.forEach(function(p){p.forEach(function(v,j){mean[j]+=v/n;});});
-  var c=data.map(function(p){return p.map(function(v,j){return v-mean[j];});});
-  var cov=Array.from({length:d},function(){return Array(d).fill(0);});
-  c.forEach(function(p){for(var i=0;i<d;i++)for(var j=0;j<d;j++)cov[i][j]+=p[i]*p[j]/n;});
-  function powerV(M,seed){
-    var rng2=seededRNG(seed);
-    var v=Array.from({length:d},function(){return randn(rng2);});
-    var nm=Math.sqrt(v.reduce(function(s,x){return s+x*x;},0));v=v.map(function(x){return x/nm;});
-    for(var it=0;it<200;it++){var Mv=Array(d).fill(0);for(var i=0;i<d;i++)for(var j=0;j<d;j++)Mv[i]+=M[i][j]*v[j];nm=Math.sqrt(Mv.reduce(function(s,x){return s+x*x;},0));if(nm<1e-12)break;v=Mv.map(function(x){return x/nm;});}
-    var Mv2=Array(d).fill(0);for(var i2=0;i2<d;i2++)for(var j2=0;j2<d;j2++)Mv2[i2]+=M[i2][j2]*v[j2];
-    return{v:v,lam:v.reduce(function(s,x,k){return s+x*Mv2[k];},0)};
-  }
-  var r1=powerV(cov,11);
-  var cov2=cov.map(function(row,i){return row.map(function(val,j){return val-r1.lam*r1.v[i]*r1.v[j];});});
-  var r2=powerV(cov2,22);
-  var pts=c.map(function(p){return[p.reduce(function(s,v,j){return s+v*r1.v[j];},0),p.reduce(function(s,v,j){return s+v*r2.v[j];},0)];});
-  var totalVar=(r1.lam+r2.lam)/(cov.reduce(function(s,r,i){return s+r[i];},0)||1);
-  return{pts:pts,info:{evr1:(r1.lam/(cov.reduce(function(s,r,i){return s+r[i];},0)||1)*100).toFixed(1),evr2:(r2.lam/(cov.reduce(function(s,r,i){return s+r[i];},0)||1)*100).toFixed(1)}};
+  var r=MCore.pca(data,2);
+  return{pts:r.projected,info:{evr1:(r.evr[0]*100).toFixed(1),evr2:(r.evr[1]*100).toFixed(1)}};
 }
 
 /* ── LDA ── */
@@ -341,108 +327,30 @@ function runLDA(data,labels){
   classes.forEach(function(c){muC[c]=muC[c].map(function(v){return v/nC[c];});});
   var SW=Array.from({length:d},function(){return Array(d).fill(0);});
   data.forEach(function(x,i){var c=labels[i],diff=x.map(function(v,j){return v-muC[c][j];});for(var r=0;r<d;r++)for(var cc=0;cc<d;cc++)SW[r][cc]+=diff[r]*diff[cc];});
-  for(var r=0;r<d;r++)SW[r][r]+=1e-4;
   var SB=Array.from({length:d},function(){return Array(d).fill(0);});
   classes.forEach(function(c){var diff=muC[c].map(function(v,j){return v-mu[j];});for(var r=0;r<d;r++)for(var cc=0;cc<d;cc++)SB[r][cc]+=nC[c]*diff[r]*diff[cc];});
-  // Gauss-Jordan inversion of SW
-  var A=SW.map(function(r){return r.slice();}),I=Array.from({length:d},function(_,i){return Array.from({length:d},function(_2,j){return i===j?1:0;});});
-  for(var col=0;col<d;col++){
-    var pivot=col;for(var row=col+1;row<d;row++)if(Math.abs(A[row][col])>Math.abs(A[pivot][col]))pivot=row;
-    var tmp=A[col];A[col]=A[pivot];A[pivot]=tmp;tmp=I[col];I[col]=I[pivot];I[pivot]=tmp;
-    var diag=A[col][col]||1e-12;
-    for(var j=0;j<d;j++){A[col][j]/=diag;I[col][j]/=diag;}
-    for(var row2=0;row2<d;row2++){if(row2===col)continue;var f=A[row2][col];for(var j2=0;j2<d;j2++){A[row2][j2]-=f*A[col][j2];I[row2][j2]-=f*I[col][j2];}}
+  // symmetric generalised eigenproblem (Cholesky whitening + Jacobi): exact and S_W-orthogonal
+  var sol=MCore.ldaDirections(SW,SB,Math.min(classes.length-1,2),1e-4);
+  var vecs=[],lams=[];
+  if(sol)sol.values.forEach(function(v,i){if(v>1e-9){vecs.push(sol.vectors[i]);lams.push(v);}});
+  if(!vecs.length){var e0=Array(d).fill(0);e0[0]=1;vecs.push(e0);lams.push(0);}
+  var second='LD2';
+  if(vecs.length===1){ // only C-1=1 discriminant: 2nd axis = top PC of what LD1 leaves (NOT a discriminant)
+    var v1=vecs[0],resid=data.map(function(x){var c=x.map(function(v,j){return v-mu[j];});var p=c.reduce(function(s,v,j){return s+v*v1[j];},0);return c.map(function(v,j){return v-p*v1[j];});});
+    vecs.push(MCore.pca(resid,1).vectors[0]);lams.push(0);second='residual PC';
   }
-  var SWinv=I;
-  var M=Array.from({length:d},function(_,i){return Array.from({length:d},function(_2,j){var s=0;for(var k=0;k<d;k++)s+=SWinv[i][k]*SB[k][j];return s;});});
-  function powerM(Mat,seed){
-    var rng3=seededRNG(seed);var v=Array.from({length:d},function(){return randn(rng3);});
-    var nm=Math.sqrt(v.reduce(function(s,x){return s+x*x;},0));v=v.map(function(x){return x/nm;});
-    for(var it=0;it<300;it++){var Mv=Array(d).fill(0);for(var i=0;i<d;i++)for(var j=0;j<d;j++)Mv[i]+=Mat[i][j]*v[j];nm=Math.sqrt(Mv.reduce(function(s,x){return s+x*x;},0));if(nm<1e-12)break;v=Mv.map(function(x){return x/nm;});}
-    var Mv2=Array(d).fill(0);for(var i2=0;i2<d;i2++)for(var j2=0;j2<d;j2++)Mv2[i2]+=Mat[i2][j2]*v[j2];
-    return{v:v,lam:v.reduce(function(s,x,k){return s+x*Mv2[k];},0)};
-  }
-  var r1=powerM(M,42);
-  var M2=M.map(function(row,i){return row.map(function(val,j){return val-r1.lam*r1.v[i]*r1.v[j];});});
-  var r2=powerM(M2,77);
-  var pts=data.map(function(p){return[p.reduce(function(s,v,j){return s+v*r1.v[j];},0),p.reduce(function(s,v,j){return s+v*r2.v[j];},0)];});
-  return{pts:pts,info:{lam1:r1.lam.toFixed(3),lam2:r2.lam.toFixed(3)}};
+  var pts=data.map(function(p){return[p.reduce(function(s,v,j){return s+v*vecs[0][j];},0),p.reduce(function(s,v,j){return s+v*vecs[1][j];},0)];});
+  return{pts:pts,info:{lam1:lams[0].toFixed(3),lam2:second==='LD2'?lams[1].toFixed(3):'n/a (only C-1=1 axis)'}};
 }
 
 /* ── Isomap ── */
 function runIsomap(data,k){
-  var n=data.length;
-  // kNN
-  var knn=[];
-  for(var i=0;i<n;i++){
-    var dists=[];for(var j=0;j<n;j++){if(i===j)continue;dists.push({j:j,d:dist2pts(data[i],data[j])});}
-    dists.sort(function(a,b){return a.d-b.d;});knn.push(dists.slice(0,k));
-  }
-  // Dijkstra
-  var INF=1e18;
-  var D=Array.from({length:n},function(){return new Float64Array(n).fill(INF);});
-  for(var src=0;src<n;src++){
-    var dist=new Float64Array(n).fill(INF);dist[src]=0;
-    var vis=new Uint8Array(n);
-    for(var iter=0;iter<n;iter++){
-      var u=-1,best=INF;for(var v=0;v<n;v++){if(!vis[v]&&dist[v]<best){best=dist[v];u=v;}}
-      if(u===-1)break;vis[u]=1;
-      knn[u].forEach(function(nb){if(dist[u]+nb.d<dist[nb.j])dist[nb.j]=dist[u]+nb.d;});
-    }
-    for(var j2=0;j2<n;j2++)D[src][j2]=dist[j2];
-  }
-  // Cap infinite distances
-  var maxD=0;for(var i2=0;i2<n;i2++)for(var j3=0;j3<n;j3++)if(D[i2][j3]<1e17&&D[i2][j3]>maxD)maxD=D[i2][j3];
-  for(var i3=0;i3<n;i3++)for(var j4=0;j4<n;j4++)if(D[i3][j4]>1e17)D[i3][j4]=maxD*2;
-  // MDS
-  var D2=Array.from({length:n},function(_,i4){return Array.from({length:n},function(_2,j5){return D[i4][j5]*D[i4][j5];});});
-  var rowMean=Array(n).fill(0),grandMean=0;
-  for(var i5=0;i5<n;i5++){for(var j6=0;j6<n;j6++)rowMean[i5]+=D2[i5][j6];rowMean[i5]/=n;grandMean+=rowMean[i5];}
-  grandMean/=n;
-  var colMean=Array(n).fill(0);for(var j7=0;j7<n;j7++){for(var i6=0;i6<n;i6++)colMean[j7]+=D2[i6][j7];colMean[j7]/=n;}
-  var B=Array.from({length:n},function(_,i7){return Array.from({length:n},function(_2,j8){return -0.5*(D2[i7][j8]-rowMean[i7]-colMean[j8]+grandMean);});});
-  function powerB(seed){
-    var rng4=seededRNG(seed);var v=Array.from({length:n},function(){return randn(rng4);});
-    var nm=Math.sqrt(v.reduce(function(s,x){return s+x*x;},0));v=v.map(function(x){return x/nm;});
-    for(var it=0;it<300;it++){var Bv=Array(n).fill(0);for(var i8=0;i8<n;i8++)for(var j9=0;j9<n;j9++)Bv[i8]+=B[i8][j9]*v[j9];nm=Math.sqrt(Bv.reduce(function(s,x){return s+x*x;},0));if(nm<1e-10)break;v=Bv.map(function(x){return x/nm;});}
-    var Bv2=Array(n).fill(0);for(var i9=0;i9<n;i9++)for(var ja=0;ja<n;ja++)Bv2[i9]+=B[i9][ja]*v[ja];
-    var lam=v.reduce(function(s,x,k){return s+x*Bv2[k];},0);
-    return{v:v,lam:Math.max(0,lam)};
-  }
-  var e1=powerB(42);
-  // deflate B
-  for(var ia=0;ia<n;ia++)for(var jb=0;jb<n;jb++)B[ia][jb]-=e1.lam*e1.v[ia]*e1.v[jb];
-  var e2=powerB(99);
-  var pts=Array.from({length:n},function(_,i){return[e1.v[i]*Math.sqrt(e1.lam),e2.v[i]*Math.sqrt(e2.lam)];});
-  return{pts:pts,info:{k:k,lam1:e1.lam.toFixed(2),lam2:e2.lam.toFixed(2)}};
+  var r=MCore.isomap(data,k);   // undirected graph, k auto-raised until connected, exact top eigenpairs
+  return{pts:r.Y,info:{k:r.kUsed,lam1:r.lambdas[0].toFixed(2),lam2:r.lambdas[1].toFixed(2)}};
 }
 
 /* ── t-SNE ── */
-function computePij(data,perp){
-  var n=data.length;
-  var P=Array.from({length:n},function(){return new Float64Array(n);});
-  for(var i=0;i<n;i++){
-    var Di=new Float64Array(n);for(var j=0;j<n;j++)Di[j]=j===i?0:dist2pts(data[i],data[j]);Di[i]=0;
-    var targetH=Math.log2(perp),lo=1e-8,hi=1000,beta=1;
-    for(var it=0;it<60;it++){
-      var sumP=0,H=0;var Ptmp=new Float64Array(n);
-      for(var j2=0;j2<n;j2++){if(j2===i)continue;Ptmp[j2]=Math.exp(-Di[j2]*Di[j2]*beta);}
-      for(var j3=0;j3<n;j3++)sumP+=Ptmp[j3];if(sumP<1e-14)sumP=1e-14;
-      for(var j4=0;j4<n;j4++){Ptmp[j4]/=sumP;if(Ptmp[j4]>1e-14)H-=Ptmp[j4]*Math.log2(Ptmp[j4]);}
-      if(Math.abs(H-targetH)<1e-5)break;
-      if(H>targetH)lo=beta;else hi=beta;
-      beta=hi===1000?beta*2:(lo+hi)/2;
-    }
-    var sumP2=0;var Pfinal=new Float64Array(n);
-    for(var j5=0;j5<n;j5++){if(j5===i)continue;Pfinal[j5]=Math.exp(-Di[j5]*Di[j5]*beta);}
-    for(var j6=0;j6<n;j6++)sumP2+=Pfinal[j6];if(sumP2<1e-14)sumP2=1e-14;
-    for(var j7=0;j7<n;j7++)P[i][j7]=Pfinal[j7]/sumP2;
-    P[i][i]=0;
-  }
-  var Psym=Array.from({length:n},function(){return new Float64Array(n);});
-  for(var i2=0;i2<n;i2++)for(var j8=0;j8<n;j8++)Psym[i2][j8]=(P[i2][j8]+P[j8][i2])/(2*n);
-  return Psym;
-}
+function computePij(data,perp){return MCore.tsneP(data,perp);}
 function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
   var n=Y.length,gradClip=4,totalCE=0;
   var num=Array.from({length:n},function(){return new Float64Array(n);});
@@ -453,7 +361,7 @@ function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
   for(var i2=0;i2<n;i2++)for(var j2=0;j2<n;j2++){
     if(i2===j2)continue;
     var pij=exagg*P[i2][j2],qij=num[i2][j2]/sumQ;
-    if(pij>1e-14&&qij>1e-14)totalCE+=pij*Math.log(pij/qij);
+    var p0=P[i2][j2];if(p0>1e-14&&qij>1e-14)totalCE+=p0*Math.log(p0/qij); // KL with the TRUE P
     var f=4*(pij-qij)*num[i2][j2];
     grads[i2][0]+=f*(Y[i2][0]-Y[j2][0]);grads[i2][1]+=f*(Y[i2][1]-Y[j2][1]);
   }
@@ -463,6 +371,7 @@ function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
     vy[i3][d]=momentum*vy[i3][d]-lr*gains[i3][d]*grads[i3][d];
     Y[i3][d]+=vy[i3][d];
   }
+  for(var dd=0;dd<2;dd++){var mm=0;for(var q1=0;q1<n;q1++)mm+=Y[q1][dd];mm/=n;for(var q2=0;q2<n;q2++)Y[q2][dd]-=mm;}
   return totalCE;
 }
 
@@ -472,9 +381,8 @@ function buildUMAPGraph(data,k){
   for(var i=0;i<n;i++){var dists=[];for(var j=0;j<n;j++){if(i===j)continue;dists.push({j:j,d:dist2pts(data[i],data[j])});}dists.sort(function(a,b){return a.d-b.d;});knn.push(dists.slice(0,k));}
   var W=Array.from({length:n},function(){return {};});
   for(var i2=0;i2<n;i2++){
-    var rho=knn[i2][0].d;var sigma=1;
-    var target=Math.log2(k),lo2=1e-8,hi2=1000;
-    for(var it=0;it<50;it++){var sum=0;knn[i2].forEach(function(nb){sum+=Math.exp(-Math.max(0,nb.d-rho)/sigma);});if(Math.abs(sum-target)<1e-5)break;if(sum>target)lo2=sigma;else hi2=sigma;sigma=(lo2+hi2)/2;}
+    var rho=knn[i2][0].d;
+    var sigma=MCore.umapSigma(knn[i2].map(function(x){return x.d;}),rho,k);   // shared, tested, correct direction
     knn[i2].forEach(function(nb){var wij=Math.exp(-Math.max(0,nb.d-rho)/sigma);var wji=(W[nb.j]&&W[nb.j][i2])||0;var wu=wij+wji-wij*wji;W[i2][nb.j]=wu;W[nb.j][i2]=wu;});
   }
   var edges=[];for(var i3=0;i3<n;i3++)for(var j2 in W[i3])if(parseInt(j2)>i3&&W[i3][j2]>0.005)edges.push({i:i3,j:parseInt(j2),w:W[i3][j2]});
@@ -493,7 +401,7 @@ function umapStepFn(Y,edges,n,a,b,lr,negSamples,rng){
     for(var ns=0;ns<negSamples;ns++){
       var kk=Math.floor(rng()*n);if(kk===ii||kk===jj)continue;
       var dxk=Y[ii][0]-Y[kk][0],dyk=Y[ii][1]-Y[kk][1],d2k=dxk*dxk+dyk*dyk+1e-6;
-      var dpowk=Math.pow(d2k,b),gR=clamp((1-w)*2*b/(d2k*(1+a*dpowk)+1e-7),0,gradClip);
+      var dpowk=Math.pow(d2k,b),gR=clamp(2*b/(d2k*(1+a*dpowk)+1e-7),0,gradClip);
       Y[ii][0]+=lr*gR*dxk;Y[ii][1]+=lr*gR*dyk;
     }
   }
@@ -603,6 +511,13 @@ function updateLegend(side,ds){
 /* ════════════════════════════════
    ITERATIVE RUNNER
 ════════════════════════════════ */
+function showMetrics(side){
+  // measured (not opinion) quality of the finished embedding, vs the original high-D data
+  var ds=DATASETS[STATE.ds],Y=STATE[side].Y,el=document.getElementById('metrics-'+side);
+  if(!Y||!el)return;
+  var k=Math.min(10,Math.floor(ds.data.length/4));
+  el.textContent='Trustworthiness@'+k+': '+MCore.trustworthiness(ds.data,Y,k).toFixed(3)+' · '+k+'-NN overlap: '+(MCore.knnOverlap(ds.data,Y,k)*100).toFixed(0)+'%';
+}
 function initIterative(side,tech,ds){
   var s=STATE[side];
   var n=ds.data.length;
@@ -617,6 +532,10 @@ function initIterative(side,tech,ds){
   } else if(tech==='umap'){
     s.umapEdges=buildUMAPGraph(ds.data,Math.min(15,n-1));
     s.umapRng=seededRNG(77+n+(side==='b'?500:0));
+    // spectral initialisation from the fuzzy graph (as in real UMAP)
+    var Wg=Array.from({length:n},function(){return {};});
+    s.umapEdges.forEach(function(e){Wg[e.i][e.j]=e.w;Wg[e.j][e.i]=e.w;});
+    s.Y=MCore.spectralInit(Wg,n,rng,2);
     s.maxIter=TECH_META.umap.maxIter;
   }
 }
@@ -635,7 +554,7 @@ function stepIterative(side,tech){
     document.getElementById('iter-fill-'+side).style.width=(pct*100)+'%';
   } else if(tech==='umap'){
     var epochLr=Math.max(0.05,1-s.iter/s.maxIter);
-    umapStepFn(s.Y,s.umapEdges,n,1.929,0.791,epochLr,5,s.umapRng);
+    umapStepFn(s.Y,s.umapEdges,n,1.577,0.895,epochLr,5,s.umapRng);
     s.iter++;
     var pct2=s.iter/s.maxIter;
     document.getElementById('iter-label-'+side).textContent='Epoch '+s.iter+' / '+s.maxIter;
@@ -645,7 +564,7 @@ function stepIterative(side,tech){
   }
   drawScatter(side,s.Y,ds.labels,ds.colors,ds.cn,'');
   if(s.iter>=s.maxIter){
-    s.done=true;s.elapsed=performance.now()-s.startTs;
+    s.done=true;s.elapsed=performance.now()-s.startTs;showMetrics(side);
     document.getElementById('card-time-'+side).textContent=s.elapsed.toFixed(0)+'ms';
   }
 }
@@ -687,7 +606,7 @@ function runComparison(){
         else if(tech==='iso')result=runIsomap(ds.data,8);
       }catch(e){result={pts:ds.data.map(function(){return[0,0];}),info:{}};}
       var elapsed=performance.now()-t0;
-      s.Y=result.pts;s.done=true;s.elapsed=elapsed;
+      s.Y=result.pts;s.done=true;s.elapsed=elapsed;showMetrics(side);
       document.getElementById('card-time-'+side).textContent=elapsed.toFixed(0)+'ms';
       drawScatter(side,result.pts,ds.labels,ds.colors,ds.cn,'');
     }
@@ -738,6 +657,7 @@ function resetAll(){
   stopAll();
   STATE.a={Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0};
   STATE.b={Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0};
+  ['a','b'].forEach(function(x){var el=document.getElementById('metrics-'+x);if(el)el.textContent='';});
   drawEmpty('a');drawEmpty('b');
   document.getElementById('card-time-a').textContent='';
   document.getElementById('card-time-b').textContent='';

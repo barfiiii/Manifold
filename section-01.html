@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Curse of Dimensionality — Manifold</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -235,6 +236,9 @@ body.light .ba-card{
 }
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 
@@ -536,22 +540,22 @@ body.light .ba-card{
     <div class="explorer-sub">All datasets are pre-loaded. Select one and explore the effects of dimensionality.</div>
 
     <div class="ds-row" id="dsRow">
-      <button class="ds-btn active" onclick="setDS('iris',this)">🌸 Iris</button>
-      <button class="ds-btn" onclick="setDS('wine',this)">🍷 Wine</button>
+      <button class="ds-btn active" onclick="setDS('iris',this)">🌸 Iris-like</button>
+      <button class="ds-btn" onclick="setDS('wine',this)">🍷 Wine-like</button>
       <button class="ds-btn" onclick="setDS('swiss',this)">🌀 Swiss Roll</button>
       <button class="ds-btn" onclick="setDS('blobs',this)">🔵 Random Blobs</button>
       <button class="ds-btn" onclick="setDS('moons',this)">🌙 Two Moons</button>
     </div>
 
     <div class="slider-row">
-      <div class="s-label">Dimensions shown</div>
+      <div class="s-label">Total dimensions (2 informative + noise)</div>
       <input type="range" id="expSlider" min="1" max="10" value="2" oninput="updateExplorer(this.value)">
       <div class="s-val" id="expVal">2</div>
     </div>
 
     <div class="explorer-grid">
       <div class="explorer-panel">
-        <div class="exp-canvas-lbl">2D Projection of Data</div>
+        <div class="exp-canvas-lbl">2D view of the d-dimensional data</div>
         <canvas class="exp-canvas" id="expCanvas" height="280"></canvas>
       </div>
       <div class="explorer-panel">
@@ -563,15 +567,15 @@ body.light .ba-card{
     <div class="exp-metrics">
       <div class="exp-metric">
         <div class="exp-m-val" id="mDensity">—</div>
-        <div class="exp-m-lbl">Relative Density</div>
+        <div class="exp-m-lbl">5-NN label accuracy</div>
       </div>
       <div class="exp-metric">
         <div class="exp-m-val" id="mContrast">—</div>
-        <div class="exp-m-lbl">Distance Contrast</div>
+        <div class="exp-m-lbl">Max / min distance</div>
       </div>
       <div class="exp-metric">
         <div class="exp-m-val" id="mSparsity">—</div>
-        <div class="exp-m-lbl">Sparsity Level</div>
+        <div class="exp-m-lbl">Nearest ÷ average distance</div>
       </div>
     </div>
 
@@ -605,10 +609,10 @@ body.light .ba-card{
       <div class="q-opts">
         <button class="q-opt" onclick="ans(1,0,false)">5,000 (just multiply by 5)</button>
         <button class="q-opt" onclick="ans(1,1,false)">10,000 (multiply by 10)</button>
-        <button class="q-opt" onclick="ans(1,2,true)">About 100,000 (10³ more, since we added 3 dimensions)</button>
+        <button class="q-opt" onclick="ans(1,2,true)">About 32 million (1,000<sup>5/2</sup>)</button>
         <button class="q-opt" onclick="ans(1,3,false)">1,000 (same — density doesn't change)</button>
       </div>
-      <div class="q-feedback" id="fb1">Adding each dimension requires 10× more points to maintain density. Going from 2D to 5D means adding 3 dimensions, so you need 10³ = 1,000 times more points — making 1,000 × 1,000 = 1,000,000 total. The exponential nature of the curse makes real data collection practically impossible at high dimensions.</div>
+      <div class="q-feedback" id="fb1">1,000 points in 2D means about &radic;1000 &asymp; 32 points along each axis. Keeping that 32-per-axis density in 5D needs 32&#8309; &asymp; 32 million points (1,000<sup>5/2</sup>). Every added dimension multiplies the requirement (here by &asymp;32); the exact factor depends on the density you start from, but the growth is always exponential.</div>
     </div>
 
     <div id="q2" class="q-card">
@@ -697,15 +701,17 @@ document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 /* ═══════════════════════════════
    STEP 1 — Volume explosion
 ═══════════════════════════════ */
+let _r=MCore.seededRNG(2024);const R=()=>_r();   // reproducible demos (same slider value -> same picture)
 function step1(d){
   d=parseInt(d);
+  _r=MCore.seededRNG(100+d);
   document.getElementById('s1Val').textContent=d;
   const cv=document.getElementById('s1Canvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
   ctx.clearRect(0,0,W,H);
 
   const n=400;
-  const pts=Array.from({length:n},()=>Array.from({length:Math.max(d,2)},()=>Math.random()));
+  const pts=Array.from({length:n},()=>Array.from({length:Math.max(d,2)},()=>R()));
 
   // project to 2D using first two dims
   const pw=W-2*m,ph=H-2*m-20;
@@ -745,6 +751,7 @@ window.addEventListener('resize',()=>step1(document.getElementById('s1Slider').v
 ═══════════════════════════════ */
 function step2(d){
   d=parseInt(d);
+  _r=MCore.seededRNG(200+d);
   document.getElementById('s2Val').textContent=d;
   const cv=document.getElementById('s2Canvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
@@ -752,7 +759,7 @@ function step2(d){
   const n=300,pw=W-2*m,ph=H-2*m-20;
 
   // simulate sparsity by computing avg nearest neighbour distance
-  const pts=Array.from({length:n},()=>Array.from({length:d},()=>Math.random()));
+  const pts=Array.from({length:n},()=>Array.from({length:d},()=>R()));
   const sample=pts.slice(0,80);
   let totalNN=0;
   sample.forEach(p=>{
@@ -763,7 +770,7 @@ function step2(d){
   const avgNN=totalNN/sample.length;
 
   // visualise: scatter where point size = how isolated it is
-  const pts2d=Array.from({length:n},()=>({x:Math.random(),y:Math.random(),iso:Math.random()*avgNN}));
+  const pts2d=Array.from({length:n},()=>({x:R(),y:R(),iso:R()*avgNN}));
   pts2d.forEach(p=>{
     const x=m+p.x*pw,y=m+p.y*ph;
     const isoFrac=Math.min(1,avgNN*(d/2));
@@ -798,12 +805,13 @@ window.addEventListener('resize',()=>step2(document.getElementById('s2Slider').v
 ═══════════════════════════════ */
 function step3(d){
   d=parseInt(d);
+  _r=MCore.seededRNG(300+d);
   document.getElementById('s3Val').textContent=d;
   const cv=document.getElementById('s3Canvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=240,ctx=cv.getContext('2d');
   ctx.clearRect(0,0,W,H);
 
-  const n=120,pts=Array.from({length:n},()=>Array.from({length:d},()=>Math.random()));
+  const n=120,pts=Array.from({length:n},()=>Array.from({length:d},()=>R()));
   const dists=[];
   for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
     let s=0;for(let k=0;k<d;k++)s+=(pts[i][k]-pts[j][k])**2;
@@ -853,6 +861,7 @@ function sphereVol(d){return Math.pow(Math.PI,d/2)/gammaHalf(d);}
 
 function step4(d){
   d=parseInt(d);
+  _r=MCore.seededRNG(400+d);
   document.getElementById('s4Val').textContent=d;
   const cv=document.getElementById('s4Canvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
@@ -864,7 +873,7 @@ function step4(d){
 
   // scatter: colour inside vs outside sphere
   for(let i=0;i<n;i++){
-    const coords=Array.from({length:d},()=>Math.random()*2-1);
+    const coords=Array.from({length:d},()=>R()*2-1);
     const norm=Math.sqrt(coords.reduce((a,v)=>a+v*v,0));
     const inSphere=norm<=1;
     const x=m+(coords[0]+1)/2*(W-2*m);
@@ -900,33 +909,33 @@ window.addEventListener('resize',()=>step4(document.getElementById('s4Slider').v
 ═══════════════════════════════ */
 const DATASETS={
   iris:{
-    name:'Iris',colors:['#f43f5e','#00d4ff','#10b981'],
+    name:'Iris-like (synthetic)',colors:['#f43f5e','#00d4ff','#10b981'],
     gen:()=>{
       const cls=[{cx:[0,0],spread:.9},{cx:[2,.8],spread:.8},{cx:[3.2,-.6],spread:.85}];
       return cls.flatMap((c,ci)=>Array.from({length:50},()=>({
-        x:c.cx[0]+(Math.random()-.5)*c.spread*2.2,
-        y:c.cx[1]+(Math.random()-.5)*c.spread*1.8,
+        x:c.cx[0]+(R()-.5)*c.spread*2.2,
+        y:c.cx[1]+(R()-.5)*c.spread*1.8,
         cls:ci
       })));
     }
   },
   wine:{
-    name:'Wine',colors:['#f59e0b','#8b5cf6','#10b981'],
+    name:'Wine-like (synthetic)',colors:['#f59e0b','#8b5cf6','#10b981'],
     gen:()=>{
       const cls=[{cx:[-1.5,1],spread:1},{cx:[.5,-.8],spread:.9},{cx:[2.2,.6],spread:.8}];
       return cls.flatMap((c,ci)=>Array.from({length:45},()=>({
-        x:c.cx[0]+(Math.random()-.5)*c.spread*2.4,
-        y:c.cx[1]+(Math.random()-.5)*c.spread*2,
+        x:c.cx[0]+(R()-.5)*c.spread*2.4,
+        y:c.cx[1]+(R()-.5)*c.spread*2,
         cls:ci
       })));
     }
   },
   swiss:{
-    name:'Swiss Roll',colors:['#00d4ff'],
+    name:'Swiss Roll',colors:['#00d4ff','#f59e0b','#f43f5e'],
     gen:()=>{
       return Array.from({length:150},(_,i)=>{
         const t=1.5*Math.PI*(1+2*(i/150));
-        return {x:t*Math.cos(t)/6,y:(Math.random()-.5)*2,cls:0,t};
+        return {x:t*Math.cos(t)/6,y:(R()-.5)*2,cls:Math.min(2,Math.floor(3*i/150)),t};
       });
     }
   },
@@ -935,7 +944,7 @@ const DATASETS={
     gen:()=>{
       const centres=[[-2,2],[2,2],[-2,-2],[2,-2]];
       return centres.flatMap((c,ci)=>Array.from({length:38},()=>({
-        x:c[0]+(Math.random()-.5)*.9,y:c[1]+(Math.random()-.5)*.9,cls:ci
+        x:c[0]+(R()-.5)*.9,y:c[1]+(R()-.5)*.9,cls:ci
       })));
     }
   },
@@ -944,8 +953,8 @@ const DATASETS={
     gen:()=>{
       return Array.from({length:160},(_,i)=>{
         const t=Math.PI*(i/80);
-        if(i<80)return{x:Math.cos(t)*1.5+(Math.random()-.5)*.3,y:Math.sin(t)*1.5+(Math.random()-.5)*.3,cls:0};
-        return{x:1.5-Math.cos(t)*1.5+(Math.random()-.5)*.3,y:.5-Math.sin(t)*1.5+(Math.random()-.5)*.3,cls:1};
+        if(i<80)return{x:Math.cos(t)*1.5+(R()-.5)*.3,y:Math.sin(t)*1.5+(R()-.5)*.3,cls:0};
+        return{x:1.5-Math.cos(t)*1.5+(R()-.5)*.3,y:.5-Math.sin(t)*1.5+(R()-.5)*.3,cls:1};
       });
     }
   }
@@ -956,7 +965,7 @@ let currentDS='iris',currentDim=2,currentPts=DATASETS.iris.gen();
 function setDS(key,btn){
   document.querySelectorAll('.ds-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  currentDS=key;currentPts=DATASETS[key].gen();
+  currentDS=key;_r=MCore.seededRNG(2024);currentPts=DATASETS[key].gen();
   updateExplorer(document.getElementById('expSlider').value);
 }
 
@@ -968,79 +977,78 @@ function updateExplorer(d){
   updateExpMetrics(d);
 }
 
+// Data for the explorer: the 2 informative coordinates + (d-2) pure-noise dimensions of comparable scale.
+function expData(d){
+  const pts=currentPts,rng=MCore.seededRNG(4242+d*31);
+  const sd=a=>{const m=a.reduce((s,v)=>s+v,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length)||1;};
+  const sn=(sd(pts.map(p=>p.x))+sd(pts.map(p=>p.y)))/2;
+  return pts.map(p=>{const row=[p.x,p.y].slice(0,Math.min(d,2));for(let k=2;k<d;k++)row.push(MCore.randn(rng)*sn);return row;});
+}
+function expPairDists(X){
+  const dists=[];
+  for(let i=0;i<X.length;i++)for(let j=i+1;j<X.length;j++){let s=0;for(let k=0;k<X[i].length;k++)s+=(X[i][k]-X[j][k])**2;dists.push(Math.sqrt(s));}
+  return dists;
+}
+
 function drawExpScatter(d){
   const cv=document.getElementById('expCanvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=280,ctx=cv.getContext('2d'),m=24;
   ctx.clearRect(0,0,W,H);
   const ds=DATASETS[currentDS],pts=currentPts;
-  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const X=expData(d);
+  // 2-D view: raw coordinates for d<=2, otherwise the top-2 PCA components of the d-dimensional data (REAL projection)
+  const P=d<=2?X.map(r=>[r[0],r.length>1?r[1]:0]):MCore.pca(X,2).projected;
+  const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const pw=W-2*m,ph=H-2*m-16;
   const sx=v=>m+(v-xmin)/(xmax-xmin+.001)*pw;
   const sy=v=>m+ph-(v-ymin)/(ymax-ymin+.001)*ph;
-
-  // add noise scaled by dimensions
-  const noise=Math.min(2,(d-1)*.18);
-  pts.forEach(p=>{
-    const nx=sx(p.x+(Math.random()-.5)*noise),ny=sy(p.y+(Math.random()-.5)*noise);
-    ctx.beginPath();ctx.arc(nx,ny,2.8,0,Math.PI*2);
-    ctx.fillStyle=ds.colors[p.cls%ds.colors.length]+(d>5?'70':'aa');
+  P.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),2.8,0,Math.PI*2);
+    ctx.fillStyle=ds.colors[pts[i].cls%ds.colors.length]+(d>5?'88':'cc');
     ctx.fill();
   });
-  ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='11px DM Sans';
-  ctx.fillText(`${ds.name} — 2D view (d=${d} total dims)`,m,H-4);
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='11px DM Sans';
+  ctx.fillText(`${ds.name} — ${d<=2?'raw 2D view':'top-2 PCA view of '+d+'D data ('+(d-2)+' dims are pure noise)'}`,m,H-4);
 }
 
 function drawExpDist(d){
   const cv=document.getElementById('expDistCanvas');cv.width=cv.offsetWidth;
   const W=cv.width,H=280,ctx=cv.getContext('2d');
   ctx.clearRect(0,0,W,H);
-
-  // generate d-dimensional points and compute distances
-  const n=80,pts=Array.from({length:n},()=>Array.from({length:d},()=>Math.random()));
-  const dists=[];
-  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
-    let s=0;for(let k=0;k<d;k++)s+=(pts[i][k]-pts[j][k])**2;
-    dists.push(Math.sqrt(s));
-  }
+  const dists=expPairDists(expData(d));
   const mn=Math.min(...dists),mx=Math.max(...dists);
   const bins=30,counts=new Array(bins).fill(0);
   dists.forEach(v=>{counts[Math.min(bins-1,Math.floor((v-mn)/(mx-mn+1e-9)*bins))]++;});
   const maxC=Math.max(...counts);
   const m={t:20,b:44,l:20,r:20},pw=W-m.l-m.r,ph=H-m.t-m.b;
-
   counts.forEach((c,i)=>{
     const bh=c/maxC*ph,x=m.l+i/bins*pw,bw=pw/bins-1;
-    const hue=200-i/bins*60;
-    ctx.fillStyle=`hsla(${hue},80%,60%,.7)`;
+    ctx.fillStyle=`hsla(${200-i/bins*60},80%,60%,.7)`;
     ctx.fillRect(x,m.t+ph-bh,bw,bh);
   });
-
   const ratio=(mx/(mn+1e-9));
   ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='11px DM Sans';
   ctx.fillText(`Min: ${mn.toFixed(3)}`,m.l,H-28);
   ctx.fillText(`Max: ${mx.toFixed(3)}`,m.l,H-14);
-  ctx.fillText(`Contrast ratio: ${ratio.toFixed(2)}×`,m.l+pw/2-40,H-14);
-  const statusCol=ratio>4?'#10b981':ratio>2?'#f59e0b':'#f43f5e';
-  ctx.fillStyle=statusCol;ctx.font='bold 11px DM Sans';
-  ctx.fillText(ratio>4?'✓ Meaningful':ratio>2?'⚠ Fading':'✗ Collapsed',m.l+pw-80,H-14);
+  ctx.fillText(`Max/min ratio: ${ratio.toFixed(2)}×`,m.l+pw/2-40,H-14);
 }
 
 function updateExpMetrics(d){
-  const density=Math.max(1,Math.round(100/Math.pow(2,Math.min(d-1,6))));
-  const contrast=Math.max(1.0,8-d*.07).toFixed(2);
-  const sparsity=Math.min(99,d*8+Math.random()*5);
-
-  document.getElementById('mDensity').textContent=density+'%';
-  document.getElementById('mContrast').textContent=contrast+'×';
-  document.getElementById('mSparsity').textContent=sparsity.toFixed(0)+'%';
-
+  // All three numbers are MEASURED on the d-dimensional data shown (2 informative dims + noise dims)
+  const X=expData(d),labels=currentPts.map(p=>p.cls);
+  const purity=MCore.knnAccuracy(X,labels,5);
+  const n=X.length;let meanD=0,cnt=0,nnSum=0;
+  for(let i=0;i<n;i++){let nn=Infinity;for(let j=0;j<n;j++){if(i===j)continue;let s=0;for(let k=0;k<X[i].length;k++)s+=(X[i][k]-X[j][k])**2;const dd=Math.sqrt(s);meanD+=dd;cnt++;if(dd<nn)nn=dd;}nnSum+=nn;}
+  meanD/=cnt;const nnRatio=(nnSum/n)/meanD;
+  const dists=expPairDists(X),ratio=Math.max(...dists)/(Math.min(...dists)+1e-9);
+  document.getElementById('mDensity').textContent=(purity*100).toFixed(0)+'%';
+  document.getElementById('mContrast').textContent=ratio.toFixed(2)+'×';
+  document.getElementById('mSparsity').textContent=(nnRatio*100).toFixed(0)+'%';
   const ds=DATASETS[currentDS];
   document.getElementById('expInsight').innerHTML=
-    d<=2?`<strong>${ds.name}</strong> in ${d}D: Data is compact and well-structured. Distances are meaningful, patterns are visible.`:
-    d<=4?`<strong>${ds.name}</strong> in ${d}D: Starting to spread out. The original clusters are still somewhat distinguishable.`:
-    d<=7?`<strong>${ds.name}</strong> in ${d}D: The curse is taking hold. Density is dropping and distance contrast is fading.`:
-    `<strong>${ds.name}</strong> in ${d}D: Severely affected. Most space is empty, distances have lost contrast, and the structure that was clear in 2D is now hidden.`;
+    d<=2?`<strong>${ds.name}</strong> in ${d}D: all dimensions carry signal, so neighbours share labels (${(purity*100).toFixed(0)}% of 5-NN votes are right) and the nearest point is much closer than average.`:
+    `<strong>${ds.name}</strong> with ${d-2} noise dimension${d>3?'s':''} added (${d}D total): 5-NN label accuracy is ${(purity*100).toFixed(0)}%, and the nearest neighbour is ${(nnRatio*100).toFixed(0)}% as far as the average point — the closer this gets to 100%, the less &ldquo;near&rdquo; means anything.`;
 }
 
 // init explorer

@@ -23,7 +23,6 @@
 | 03E | Isomap |
 | 04 | Compare Techniques Side-by-Side |
 | 05 | Dataset Playground |
-| 06 | Gaussian Process Regression |
 
 ---
 
@@ -77,8 +76,7 @@ Manifold/
 ├── section-lda.html
 ├── section-isomap.html
 ├── section-compare.html
-├── section05-playground.html
-└── section-gpr.html
+└── section05-playground.html
 ```
 
 ---
@@ -87,3 +85,31 @@ Manifold/
 
 Made with 💙 for the classroom.  
 Contact — [shrawanvedshree@gmail.com](mailto:shrawanvedshree@gmail.com)
+
+
+---
+
+## 🧪 Tests
+
+The shared maths lives in `manifold-core.js` (eigen-solvers, PCA, LDA, Isomap, UMAP graph/σ/a,b, t-SNE, metrics, CSV).
+It is checked against NumPy / SciPy / scikit-learn reference values:
+
+```bash
+node tests/core.test.js
+```
+
+## 🔐 Notes on access control
+
+`guard.js` redirects to `login.html` when there is no session, but **this is a courtesy lock only** — everything runs in
+the browser and can be bypassed. For real access control, verify the Google ID token on a server. Also review your
+EmailJS dashboard: restrict allowed origins and fix the template recipient so the public key cannot be used to mail
+arbitrary addresses.
+
+## 📁 Extra files
+
+```
+manifold-core.js     # shared, tested maths + helpers
+guard.js             # session redirect + progress recording
+tests/               # node tests + NumPy/SciPy fixtures
+AUDIT.md             # audit findings and fix status
+```

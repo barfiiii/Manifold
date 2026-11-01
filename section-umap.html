@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UMAP — Uniform Manifold Approximation & Projection | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -176,6 +177,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <div id="prog"></div>
@@ -194,7 +198,7 @@ body.light #bg{opacity:0.05 !important;}
       <span class="hero-badge">Non-linear</span>
       <span class="hero-badge">Topology-based</span>
       <span class="hero-badge">Faster than t-SNE</span>
-      <span class="hero-badge">Preserves global structure</span>
+      <span class="hero-badge">Often keeps more global structure</span>
     </div>
     <h1>UMAP</h1>
     <p class="hero-sub">Uniform Manifold Approximation &amp; Projection. Built on the mathematics of topology &mdash; it models the shape of your data as a fuzzy graph, then finds the best 2D graph to match it.</p>
@@ -223,7 +227,7 @@ body.light #bg{opacity:0.05 !important;}
       </div>
     </div>
     <div class="compare-note">
-      <strong>UMAP vs t-SNE:</strong> Both are non-linear and preserve local structure. UMAP is significantly faster, better at preserving global structure (the relative positions of clusters), and can project new unseen data points. t-SNE produces slightly crisper local clusters. UMAP is now the default choice for most modern visualisation tasks.
+      <strong>UMAP vs t-SNE:</strong> Both are non-linear and preserve local structure. UMAP is significantly faster, often better at preserving global structure (the relative positions of clusters) &mdash; though much of that advantage comes from its spectral initialisation, not the loss itself, and can project new unseen data points. t-SNE produces slightly crisper local clusters. UMAP is now the default choice for most modern visualisation tasks.
     </div>
   </div>
 </section>
@@ -323,7 +327,7 @@ body.light #bg{opacity:0.05 !important;}
         <div>
           <div class="step-num">4</div>
           <div class="step-title">Define Low-Dimensional Similarities</div>
-          <div class="step-exp">In the 2D output space, UMAP defines a different similarity function from t-SNE. It uses a curve with two learnable parameters: <span class="mi">a</span> and <span class="mi">b</span> that control how quickly similarity drops off with distance. The defaults (a=1.929, b=0.791) make the curve approximate a smooth step function &mdash; keeping close things very close and pushing far things apart more aggressively than t-SNE.</div>
+          <div class="step-exp">In the 2D output space, UMAP defines a different similarity function from t-SNE. It uses a curve with two learnable parameters: <span class="mi">a</span> and <span class="mi">b</span> that control how quickly similarity drops off with distance. With min_dist=0.1 the fitted values are a&asymp;1.577, b&asymp;0.895; together they make the curve approximate a smooth step function &mdash; keeping close things very close and pushing far things apart more aggressively than t-SNE.</div>
           <div class="math-block">
             <div class="formula">v(y<sub>i</sub>, y<sub>j</sub>) = 1 / (1 + a * ||y<sub>i</sub>-y<sub>j</sub>||^(2b))</div>
             <div class="derivation">
@@ -331,7 +335,7 @@ body.light #bg{opacity:0.05 !important;}
               UMAP wants the low-D similarity to also approximate a fuzzy membership function (values in [0,1]). The chosen family of curves is a <em>smooth approximation to the step function</em>:<br>
               <div class="deriv-step">If <span class="mi">d &le; min_dist</span>: similarity = 1 (points are "in the same place")</div>
               <div class="deriv-step">If <span class="mi">d > min_dist</span>: similarity decays smoothly toward 0</div>
-              The parameters <span class="mi">a</span> and <span class="mi">b</span> are fit via least-squares to match this piecewise curve at the chosen <span class="mi">min_dist</span> value. With defaults (min_dist=0.1): <span class="mi">a=1.929, b=0.791</span>.<br><br>
+              The parameters <span class="mi">a</span> and <span class="mi">b</span> are fit via least-squares to match this piecewise curve at the chosen <span class="mi">min_dist</span> value. With min_dist=0.1: <span class="mi">a&asymp;1.577, b&asymp;0.895</span> (min_dist=0.001 gives a&asymp;1.929, b&asymp;0.792). The explorer refits them whenever you move the min_dist slider.<br><br>
               Compare to t-SNE: <span class="mi">q_{ij} = 1/(1+||yi-yj||^2)</span> &mdash; a fixed Cauchy distribution with no learnable shape. UMAP's <span class="mi">b&lt;1</span> exponent gives heavier tails than t-SNE, allowing more global structure to survive.
             </div>
           </div>
@@ -386,7 +390,7 @@ body.light #bg{opacity:0.05 !important;}
       <div class="prop-card">
         <h4>&#10003; Strengths</h4>
         <ul>
-          <li>Preserves both local AND global structure</li>
+          <li>Preserves local structure well and often more global layout than t-SNE (largely thanks to spectral init)</li>
           <li>Much faster than t-SNE (nearly linear time)</li>
           <li>Can project new unseen data points</li>
           <li>Works in any output dimension (2D, 3D, 10D...)</li>
@@ -436,7 +440,7 @@ body.light #bg{opacity:0.05 !important;}
       </div>
       <div class="triple-card">
         <h5 style="color:var(--accent)">UMAP</h5>
-        <p>Non-linear. Fast. Good local + global. Can project new points. Now the standard choice for visualisation.</p>
+        <p>Non-linear. Fast. Good local structure, often better global layout than t-SNE. Can project new points. Now the standard choice for visualisation.</p>
       </div>
     </div>
   </div>
@@ -566,20 +570,11 @@ function drawArrow(ctx,x1,y1,x2,y2,color,lw){
    DATASETS
 ═══════════════════════════════════════ */
 function genIris(){
-  var rng=seededRNG(42);
-  var cls=[
-    {m:[5.01,3.42,1.46,0.24],s:[0.35,0.38,0.17,0.10]},
-    {m:[5.94,2.77,4.26,1.33],s:[0.52,0.31,0.47,0.20]},
-    {m:[6.59,2.97,5.55,2.03],s:[0.64,0.32,0.55,0.27]}
-  ];
-  var data=[],labels=[];
-  for(var c=0;c<3;c++) for(var i=0;i<30;i++){
-    data.push(cls[c].m.map(function(m,j){return m+randn(rng)*cls[c].s[j];}));
-    labels.push(c);
-  }
+  var __s=MCore.irisSample(30);
+  var data=__s.data,labels=__s.labels;
   return{name:'Iris Flowers',data:data,labels:labels,
     colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],
-    desc:'90 flowers · 3 species · 4 features'};
+    desc:'90 flowers · 3 species · 4 features (real Fisher Iris)'};
 }
 function genMoons(){
   var rng=seededRNG(456);
@@ -826,8 +821,8 @@ function drawStep4(t){
   }
   ctx.stroke();
 
-  // UMAP curve (a=1.929, b=0.791)
-  var a=1.929,b=0.791;
+  // UMAP curve for min_dist=0.1 (fitted: a=1.577, b=0.895)
+  var a=1.577,b=0.895;
   ctx.globalAlpha=et;
   ctx.strokeStyle='#10b981';ctx.lineWidth=2.5;ctx.beginPath();
   for(var i2=0;i2<=steps;i2++){
@@ -970,20 +965,9 @@ function computeWeights(data,knn,k){
   var sigmas=new Float64Array(n);
   for(var i=0;i<n;i++){
     rhos[i]=Math.sqrt(knn[i][0].d);
-    // Binary search for sigma: sum of exp(-(d-rho)/sigma) = log2(k)
-    var target=Math.log2(k);
-    var lo=1e-8,hi=1000,sigma=1;
-    for(var it=0;it<64;it++){
-      var sum=0;
-      for(var ki=0;ki<knn[i].length;ki++){
-        var di=Math.sqrt(knn[i][ki].d)-rhos[i];
-        sum+=Math.exp(-Math.max(0,di)/sigma);
-      }
-      if(Math.abs(sum-target)<1e-5)break;
-      if(sum>target)lo=sigma;else hi=sigma;
-      sigma=(lo+hi)/2;
-    }
-    sigmas[i]=sigma;
+    // sigma: solve sum_j exp(-(d_j-rho)/sigma) = log2(k)  (shared, tested implementation)
+    var dl=knn[i].map(function(x){return Math.sqrt(x.d);});
+    sigmas[i]=MCore.umapSigma(dl,rhos[i],k);
   }
 
   // Build directed weights
@@ -1015,26 +999,8 @@ function computeWeights(data,knn,k){
 
 // Simple spectral-like init using power iteration on graph structure
 function spectralInit(Wsym,n,rng){
-  // Random init spread across [-5,5] then one pass of neighbour averaging
-  // Avoids the near-zero collapse that causes repulsion explosion
-  var Y=[];
-  for(var i=0;i<n;i++)Y.push([(rng()-0.5)*10,(rng()-0.5)*10]);
-  // 3 passes of neighbour pull (light spectral flavour without diffusion collapse)
-  for(var step=0;step<3;step++){
-    var newY=[];
-    for(var i2=0;i2<n;i2++){
-      var nsx=0,nsy=0,sw=0;
-      var Wrow=Wsym[i2];
-      for(var j in Wrow){
-        var jj=parseInt(j),w=Wrow[j];
-        nsx+=w*Y[jj][0];nsy+=w*Y[jj][1];sw+=w;
-      }
-      if(sw>0.001)newY.push([lerp(Y[i2][0],nsx/sw,0.15),lerp(Y[i2][1],nsy/sw,0.15)]);
-      else newY.push([Y[i2][0]+0.0,Y[i2][1]+0.0]);
-    }
-    Y=newY;
-  }
-  return Y;
+  // Laplacian-eigenmap (spectral) initialisation of the fuzzy graph; falls back to random if the graph is degenerate.
+  return MCore.spectralInit(Wsym,n,rng,2);
 }
 
 var UMAP_EDGES=[];
@@ -1078,7 +1044,7 @@ function umapStep(Y,n,a,b,lr,negSamples,rng){
       var d2k=dxk*dxk+dyk*dyk+1e-6;
       var dpowk=Math.pow(d2k,b);
       var denom=d2k*(1.0+a*dpowk)+1e-7;
-      var gR=clamp((1.0-w)*2.0*b/denom,0.0,gradClip);
+      var gR=clamp(2.0*b/denom,0.0,gradClip);  // negative samples are treated as non-neighbours (weight 0 -> full repulsion)
       // add to Y[ii] in direction away from kk
       Y[ii][0]+=lr*gR*dxk; Y[ii][1]+=lr*gR*dyk;
     }
@@ -1087,27 +1053,13 @@ function umapStep(Y,n,a,b,lr,negSamples,rng){
 }
 
 // Explorer state
-var UMAP_STATE={running:false,epoch:0,maxEpoch:300,Y:null,Wsym:null,ds:null,rafId:null,cost:0,speed:1,showAlt:false,rng:null,altPts:null,n:0,a:1.929,b:0.791};
+var UMAP_STATE={running:false,epoch:0,maxEpoch:300,Y:null,Wsym:null,ds:null,rafId:null,cost:0,speed:1,showAlt:false,rng:null,altPts:null,n:0,a:1.577,b:0.895};
 var curDs='iris';
-var tsnePts=null; // cached t-SNE-like layout for comparison
+var tsnePts=null; // cached real t-SNE layout for comparison
 
 function computeSimpleTSNELayout(data,labels){
-  // Fast label-based layout: place each class in a different region
-  var n=data.length;
-  var rng=seededRNG(99);
-  var classCount={};
-  labels.forEach(function(l){classCount[l]=(classCount[l]||0)+1;});
-  var classes=Object.keys(classCount).map(Number);
-  var nc=classes.length;
-  var Y=[];
-  var classIdx={};
-  classes.forEach(function(c,ci){classIdx[c]=ci;});
-  for(var i=0;i<n;i++){
-    var ci=classIdx[labels[i]],angle=2*Math.PI*ci/nc;
-    var r=2.5+randn(rng)*0.45;
-    Y.push([r*Math.cos(angle)+randn(rng)*0.35,r*Math.sin(angle)+randn(rng)*0.35]);
-  }
-  return Y;
+  // A REAL t-SNE run (labels are NOT used). 300 iterations, perplexity ~15.
+  return MCore.tsne(data,{perplexity:15,iters:300,seed:99});
 }
 
 function initUMAP(dsKey){
@@ -1130,9 +1082,7 @@ function initUMAP(dsKey){
   var Y=spectralInit(Wsym,n,rng);
 
   // Compute a,b from minDist
-  var a=1.929,b=0.791;
-  if(minDist<0.05){a=1.5;b=0.6;}
-  else if(minDist>0.3){a=2.5;b=0.95;}
+  var ab=MCore.fitAB(minDist),a=ab[0],b=ab[1];
 
   // Alt layout (t-SNE-like)
   tsnePts=computeSimpleTSNELayout(ds.data,ds.labels);

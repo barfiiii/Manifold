@@ -86,6 +86,7 @@ body.light .divider-line{background:rgba(0,0,0,0.07);}
 body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);}
 
 </style>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <canvas id="bg"></canvas>
@@ -133,7 +134,8 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
     </div>
 
     <div class="note" id="bottom-note">
-      Sign in with any Google account &mdash; no registration needed.
+      Sign in with any Google account &mdash; no registration needed.<br>
+      <span style="opacity:.8">On your first sign-in we record your name and email in a login log and send you one welcome email. No other data is collected.</span>
     </div>
   </div>
 
@@ -150,7 +152,7 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
 var CLIENT_ID = '605465001206-caj9d5peigu55pdpc73biea0an7b9aea.apps.googleusercontent.com';
 
 /* Owner email — always gets 'owner' role, everyone else gets 'student' */
-var OWNER_EMAIL = 'shrawanvedshree@gmail.com';
+var OWNER_EMAIL = 'shrawanvedshree@gmail.com';   // display-only label: roles here are NOT a security boundary (client-side)
 
 /* ── EmailJS — welcome email on every login ── */
 var EMAILJS_SERVICE_ID  = 'service_sml1v8u';
@@ -224,6 +226,15 @@ function handleGoogleToken(response){
     payload=JSON.parse(atob(b64.replace(/-/g,'+').replace(/_/g,'/')));
   }catch(e){showState('signin');return;}
 
+  // Client-side sanity checks on the ID-token claims (this does NOT replace server-side signature verification)
+  var nowS = Math.floor(Date.now()/1000);
+  var issOk = payload.iss==='https://accounts.google.com' || payload.iss==='accounts.google.com';
+  if(!issOk || payload.aud!==CLIENT_ID || !(payload.exp>nowS) || !payload.email || payload.email_verified===false){
+    document.getElementById('denied-email-txt').textContent = 'Token rejected';
+    showState('denied');
+    return;
+  }
+
   var email   = (payload.email  ||'').toLowerCase().trim();
   var name    = payload.name    || email.split('@')[0];
   var picture = payload.picture || '';
@@ -231,11 +242,16 @@ function handleGoogleToken(response){
   // Owner gets special role; everyone else is a student
   var role = (email === OWNER_EMAIL) ? 'owner' : 'student';
 
-  // ── Silently log this login to Google Form ──
-  notifyLogin(email, name);
-
-  // ── Send warm welcome email ──
-  sendWelcomeEmail(name, email);
+  // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
+  // (limits spam and abuse of the EmailJS quota; consent text is shown on the card)
+  var seen = {};
+  try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
+  if(!seen[email]){
+    notifyLogin(email, name);
+    sendWelcomeEmail(name, email);
+    seen[email] = Date.now();
+    try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
+  }
 
   // Save session — dashboard reads these
   sessionStorage.setItem('manifold_user',    name);

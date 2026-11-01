@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LDA — Linear Discriminant Analysis | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -168,6 +169,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 <div id="prog"></div>
@@ -478,7 +482,7 @@ body.light #bg{opacity:0.05 !important;}
       </div>
       <div class="ds-picker" id="ds-picker">
         <button class="ds-btn active" data-ds="iris">&#127804; Iris (3 classes)</button>
-        <button class="ds-btn" data-ds="wine">&#127863; Wine (2 groups)</button>
+        <button class="ds-btn" data-ds="wine">&#127863; Wine-like, synthetic (2 groups)</button>
         <button class="ds-btn" data-ds="blobs">&#128309; Four Clusters</button>
         <button class="ds-btn" data-ds="overlap">&#127919; Overlapping Classes</button>
       </div>
@@ -643,8 +647,7 @@ function computeLDA(data,labels){
     var diff=x.map(function(v,j){return v-muC[c][j];});
     for(var r=0;r<d;r++)for(var cc2=0;cc2<d;cc2++)SW[r][cc2]+=diff[r]*diff[cc2];
   });
-  // Regularise S_W slightly for stability
-  for(var r=0;r<d;r++)SW[r][r]+=1e-6;
+  // (S_W is NOT modified here; a small relative shrinkage is applied inside MCore.ldaDirections)
 
   // S_B: between-class scatter
   var SB=Array.from({length:d},function(){return Array(d).fill(0);});
@@ -653,31 +656,20 @@ function computeLDA(data,labels){
     for(var r=0;r<d;r++)for(var cc3=0;cc3<d;cc3++)SB[r][cc3]+=nC[c]*diff[r]*diff[cc3];
   });
 
-  // S_W^{-1} S_B
-  var SWinv=matInvNxN(SW);
-  var M=matMul(SWinv,SB);
-
-  // Find top min(C-1, 2) eigenvectors
+  // Solve S_B v = lambda S_W v as a SYMMETRIC problem (Cholesky whitening + Jacobi) — exact and S_W-orthogonal.
   var maxDirs=Math.min(C-1,2);
-  var rng=seededRNG(42);
-  var lambdas=[],vecs=[];
-  var Mcopy=M.map(function(r){return r.slice();});
-  for(var ki=0;ki<maxDirs;ki++){
-    var res=powerIter(Mcopy,rng,300);
-    if(Math.abs(res.lambda)<1e-8)break;
-    lambdas.push(res.lambda);
-    vecs.push(res.v);
-    // deflate
-    var lam=res.lambda,vec=res.v;
-    for(var ri=0;ri<d;ri++)for(var ci=0;ci<d;ci++)Mcopy[ri][ci]-=lam*vec[ri]*vec[ci];
-    rng=seededRNG(99+ki);
+  var sol=MCore.ldaDirections(SW,SB,maxDirs,1e-4);
+  var lambdas=[],vecs=[],secondResidual=false;
+  if(sol){
+    sol.values.forEach(function(v,i){if(v>1e-9){lambdas.push(v);vecs.push(sol.vectors[i]);}});
   }
-  if(vecs.length===0){vecs.push(Array(d).fill(0));vecs[0][0]=1;lambdas.push(0);}
+  if(vecs.length===0){var e0=Array(d).fill(0);e0[0]=1;vecs.push(e0);lambdas.push(0);}
   if(vecs.length===1){
-    var v2=Array(d).fill(0);
-    // orthogonal to v1 in 2D or just second feature
-    if(d>=2){v2[1]=vecs[0][0];v2[0]=-vecs[0][1];}else{v2[0]=1;}
-    vecs.push(v2);lambdas.push(0);
+    // Only C-1 = 1 true discriminant exists. For the 2-D picture use the top principal axis of the data
+    // with the LD1 component removed — clearly flagged as NOT a discriminant.
+    var v1=vecs[0],resid=data.map(function(x){var c=x.map(function(v,j){return v-mu[j];});var p=c.reduce(function(s,v,j){return s+v*v1[j];},0);return c.map(function(v,j){return v-p*v1[j];});});
+    var rp=MCore.pca(resid,1);
+    vecs.push(rp.vectors[0]);lambdas.push(0);secondResidual=true;
   }
 
   // Project
@@ -695,45 +687,19 @@ function computeLDA(data,labels){
     ];
   });
 
-  return{mu:mu,muC:muC,nC:nC,SW:SW,SB:SB,lambdas:lambdas,vecs:vecs,projected:projected,projMeans:projMeans,classes:classes,C:C};
+  return{mu:mu,muC:muC,nC:nC,SW:SW,SB:SB,lambdas:lambdas,vecs:vecs,projected:projected,projMeans:projMeans,classes:classes,C:C,secondResidual:secondResidual};
 }
 
 // Simple PCA for comparison
-function computePCA2(data){
-  var n=data.length,d=data[0].length;
-  var mean=Array(d).fill(0);
-  data.forEach(function(p){p.forEach(function(v,j){mean[j]+=v/n;});});
-  var centered=data.map(function(p){return p.map(function(v,j){return v-mean[j];});});
-  var cov=Array.from({length:d},function(){return Array(d).fill(0);});
-  centered.forEach(function(p){for(var i=0;i<d;i++)for(var j=0;j<d;j++)cov[i][j]+=p[i]*p[j]/n;});
-  var rng=seededRNG(11);
-  var v1res=powerIter(cov,rng,200);
-  var v1=v1res.v;
-  var cov2=cov.map(function(row,i){return row.map(function(val,j){return val-v1res.lambda*v1[i]*v1[j];});});
-  var rng2=seededRNG(22);
-  var v2res=powerIter(cov2,rng2,200);
-  var v2=v2res.v;
-  return centered.map(function(p){
-    return [p.reduce(function(s,v,j){return s+v*v1[j];},0),p.reduce(function(s,v,j){return s+v*v2[j];},0)];
-  });
-}
+function computePCA2(data){return MCore.pca(data,2).projected;}
 
 /* ═══════════════════════════════════
    DATASETS
 ═══════════════════════════════════ */
 function genIris(){
-  var rng=seededRNG(42);
-  var cls=[
-    {m:[5.01,3.42,1.46,0.24],s:[0.35,0.38,0.17,0.10]},
-    {m:[5.94,2.77,4.26,1.33],s:[0.52,0.31,0.47,0.20]},
-    {m:[6.59,2.97,5.55,2.03],s:[0.64,0.32,0.55,0.27]}
-  ];
-  var data=[],labels=[];
-  for(var c=0;c<3;c++)for(var i=0;i<40;i++){
-    data.push(cls[c].m.map(function(m,j){return m+randn(rng)*cls[c].s[j];}));
-    labels.push(c);
-  }
-  return{name:'Iris Flowers',data:data,labels:labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'120 flowers · 3 species · 4 features · LDA gives 2 discriminant axes'};
+  var __s=MCore.irisSample(40);
+  var data=__s.data,labels=__s.labels;
+  return{name:'Iris Flowers',data:data,labels:labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'120 flowers · 3 species · 4 features · LDA gives 2 discriminant axes (real Fisher Iris)'};
 }
 function genWine(){
   var rng=seededRNG(123);
@@ -746,7 +712,7 @@ function genWine(){
     data.push(cls[c].m.map(function(m,j){return m+randn(rng)*cls[c].s[j];}));
     labels.push(c);
   }
-  return{name:'Wine Quality',data:data,labels:labels,colors:['#f43f5e','#10b981'],cn:['Low Quality','High Quality'],desc:'100 samples · 2 quality groups · 6 features · LDA gives 1 axis (C-1=1)'};
+  return{name:'Wine-like (synthetic)',data:data,labels:labels,colors:['#f43f5e','#10b981'],cn:['Low Quality','High Quality'],desc:'100 SYNTHETIC samples · 2 quality groups · 6 features · LDA gives 1 axis (C-1=1)'};
 }
 function genBlobs(){
   var rng=seededRNG(789);
@@ -1298,7 +1264,7 @@ function drawExplorer(gt){
     var rawFirst=ds.data.map(function(p){return p.slice(0,2);});
     var pts=rawFirst.map(function(p,i){return[lerp(p[0],lda.projected[i][0],et),lerp(p[1],lda.projected[i][1],et)];});
     var xl=et<0.5?'Feature 1':'LD1';
-    var yl=et<0.5?'Feature 2':'LD2';
+    var yl=et<0.5?'Feature 2':(lda.secondResidual?'Residual PC (not a discriminant)':'LD2');
     var title=et<0.5?'Projecting to LDA Space...':'LDA Projection — '+ds.name;
     var sc4=exScatter(ctx,W,H,pts,ds.labels,ds.colors,ds.cn,title,xl,yl);
     // Show projected means in final state

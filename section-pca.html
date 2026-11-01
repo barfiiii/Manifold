@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PCA — Principal Component Analysis | MANIFOLD</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -90,6 +91,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .explorer-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
 .explorer-hd p{color:var(--soft);font-size:15px}
 .ds-picker{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.std-toggle{display:inline-flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:13px;color:var(--soft);cursor:pointer}
+.std-toggle input{width:18px;height:18px;accent-color:var(--accent)}
+#std-hint{font-size:12px;color:#f59e0b;min-height:16px;margin-bottom:6px}
 .ds-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft);padding:8px 18px;border-radius:100px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
 .ds-btn:hover{border-color:rgba(0,212,255,.4);color:var(--accent)}
 .ds-btn.active{background:rgba(0,212,255,.12);border-color:var(--accent);color:var(--accent)}
@@ -170,6 +174,9 @@ body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-co
 body.light #bg{opacity:0.05 !important;}
 
 </style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
 </head>
 <body>
 
@@ -439,11 +446,13 @@ body.light #bg{opacity:0.05 !important;}
 
       <div class="ds-picker" id="ds-picker">
         <button class="ds-btn active" data-ds="iris">🌸 Iris Flowers</button>
-        <button class="ds-btn" data-ds="wine">🍷 Wine Quality</button>
+        <button class="ds-btn" data-ds="wine">🍷 Wine-like (synthetic)</button>
         <button class="ds-btn" data-ds="moons">🌙 Two Moons</button>
         <button class="ds-btn" data-ds="blobs">🔵 Random Clusters</button>
         <button class="ds-btn" data-ds="swiss">🥐 Swiss Roll</button>
       </div>
+      <label class="std-toggle"><input type="checkbox" id="std-chk"> Standardise features (z-score)</label>
+      <div id="std-hint" role="status"></div>
       <div id="ds-info"></div>
 
       <div class="ex-layout">
@@ -560,48 +569,26 @@ function topKEigen(M,k){
 function computePCA(data){
   const n=data.length,d=data[0].length;
   if(n<2||d<1)return null;
-  // Mean
-  const mean=Array(d).fill(0);
-  for(const p of data) p.forEach((v,j)=>mean[j]+=v/n);
-  // Center
-  const centered=data.map(p=>p.map((v,j)=>v-mean[j]));
-  // Covariance
-  const cov=Array.from({length:d},()=>Array(d).fill(0));
-  for(const p of centered)
-    for(let i=0;i<d;i++) for(let j=0;j<d;j++) cov[i][j]+=p[i]*p[j]/n;
-  // Eigenvectors
-  const k=Math.min(d,8);
-  const{lambdas,vecs}=topKEigen(cov,k);
-  // Pad to at least 2
-  while(lambdas.length<2){lambdas.push(0);vecs.push(Array(d).fill(0))}
-  // EVR
-  const totalVar=lambdas.reduce((s,v)=>s+Math.max(0,v),0)||1;
-  const evr=lambdas.map(v=>Math.max(0,v)/totalVar);
-  // Project to 2D
-  const projected=centered.map(p=>[dot(p,vecs[0]),dot(p,vecs[1])]);
-  return{mean,centered,cov,lambdas,vecs,evr,projected};
+  // Exact eigen-decomposition (Jacobi); explained variance uses the TRACE (all variance).
+  const r=MCore.pca(data,Math.min(d,8));
+  const lambdas=r.values.slice(),vecs=r.vectors.slice(),evr=r.evr.slice();
+  while(lambdas.length<2){lambdas.push(0);vecs.push(Array(d).fill(0));}
+  while(evr.length<2)evr.push(0);
+  const projected=r.centered.map(p=>[dot(p,vecs[0]),dot(p,vecs[1])]);
+  return{mean:r.mean,centered:r.centered,cov:r.cov,lambdas,vecs,evr,trace:r.trace,projected};
 }
 
 /* ════════════════════════════════════════════════════
    DATASETS
 ════════════════════════════════════════════════════ */
 function genIris(){
-  const rng=seededRNG(42);
-  const cls=[
-    {m:[5.01,3.42,1.46,0.24],s:[0.35,0.38,0.17,0.10]},
-    {m:[5.94,2.77,4.26,1.33],s:[0.52,0.31,0.47,0.20]},
-    {m:[6.59,2.97,5.55,2.03],s:[0.64,0.32,0.55,0.27]}
-  ];
-  const data=[],labels=[];
-  for(let c=0;c<3;c++) for(let i=0;i<50;i++){
-    data.push(cls[c].m.map((m,j)=>m+randn(rng)*cls[c].s[j]));
-    labels.push(c);
-  }
-  return{name:'Iris Flowers',data,labels,
+  // Real Fisher Iris (150 × 4), not synthetic.
+  const I=MCore.IRIS;
+  return{name:'Iris Flowers',data:I.data.map(r=>r.slice()),labels:I.labels.slice(),
     fn:['Sepal Length','Sepal Width','Petal Length','Petal Width'],
     cn:['Setosa','Versicolor','Virginica'],
     colors:['#10b981','#00d4ff','#f59e0b'],
-    desc:'150 flowers · 3 species · 4 measurements each'};
+    desc:'150 flowers · 3 species · 4 measurements each (real data)'};
 }
 function genWine(){
   const rng=seededRNG(123);
@@ -614,11 +601,11 @@ function genWine(){
     data.push(cls[c].m.map((m,j)=>m+randn(rng)*cls[c].s[j]));
     labels.push(c);
   }
-  return{name:'Wine Quality',data,labels,
+  return{name:'Wine-like (synthetic)',data,labels,
     fn:['Acidity','Volatile Acid','Citric Acid','Sugar','Chlorides','SO₂'],
     cn:['Low Quality','High Quality'],
     colors:['#f43f5e','#10b981'],
-    desc:'120 wine samples · 2 quality groups · 6 chemical features'};
+    desc:'120 SYNTHETIC wine-like samples · 2 groups · 6 features (generated, not real wine data)'};
 }
 function genMoons(){
   const rng=seededRNG(456);
@@ -1073,15 +1060,21 @@ function getPhase(gt){
 
 function initExplorer(dsKey){
   curDs=dsKey;
-  const ds=DATASETS[dsKey];
+  const base=DATASETS[dsKey];
+  const useStd=document.getElementById('std-chk').checked;
+  const ds=useStd?Object.assign({},base,{data:MCore.standardize(base.data).data}):base;
   const pca=computePCA(ds.data);
   EX={ds,pca};
-  document.getElementById('ds-info').textContent=`${ds.data.length} points · ${ds.data[0].length} features · ${ds.cn.length} classes — ${ds.desc}`;
+  // warn when feature scales differ a lot (unscaled PCA is then dominated by the biggest-scale column)
+  const sds=MCore.standardize(base.data).sd,ratio=Math.max(...sds)/Math.max(Math.min(...sds),1e-12);
+  document.getElementById('std-hint').textContent=(!useStd&&ratio>10)?`⚠ Feature scales differ ${ratio.toFixed(0)}× — PC1 mostly reflects the largest-scale feature. Tick "Standardise" to compare fairly.`:'';
+  document.getElementById('ds-info').textContent=`${ds.data.length} points · ${ds.data[0].length} features · ${ds.cn.length} classes — ${ds.desc}${useStd?' · standardised':''}`;
   document.querySelectorAll('.ds-btn').forEach(b=>b.classList.toggle('active',b.dataset.ds===dsKey));
   exT=0;exRunning=false;exLastTs=null;
   document.getElementById('play-btn').textContent='▶ Play Pipeline';
   drawExplorer(0);updateDeriv(0);updatePhaseBar(0);
 }
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='std-chk')initExplorer(curDs);});
 
 function togglePlay(){
   if(exT>=TOTAL_T-.05)exT=0;
@@ -1403,7 +1396,7 @@ const DERIV=[
     tt:d=>`Step 2: Covariance Matrix`,
     fm:d=>`C = (1/n) X̃ᵀ X̃`,
     bd:(d,p)=>`We compute how every pair of features varies together. The result is a <strong>${p.cov.length}×${p.cov.length}</strong> symmetric matrix.<br><br><span style="color:#f43f5e">■ Red cells</span>: positive covariance (features move together)<br><span style="color:#00d4ff">■ Blue cells</span>: negative covariance (features move oppositely)<br>Diagonal: pure variance of each feature`,
-    nm:(d,p)=>`C[0,0] = ${p.cov[0][0].toFixed(4)}  (var of ${d.fn[0]})\nC[0,1] = ${p.cov[0][1].toFixed(4)}  (cov of feat 1,2)\n\nTrace (total var) = ${p.lambdas.reduce((s,v)=>s+Math.max(0,v),0).toFixed(4)}\n\n${d.fn.slice(0,Math.min(3,d.fn.length)).map((n,i)=>`${n}: var=${p.cov[i][i].toFixed(3)}`).join('\n')}`
+    nm:(d,p)=>`C[0,0] = ${p.cov[0][0].toFixed(4)}  (var of ${d.fn[0]})\nC[0,1] = ${p.cov[0][1].toFixed(4)}  (cov of feat 1,2)\n\nTrace (total var) = ${p.trace.toFixed(4)}\n\n${d.fn.slice(0,Math.min(3,d.fn.length)).map((n,i)=>`${n}: var=${p.cov[i][i].toFixed(3)}`).join('\n')}`
   },
   {
     ey:d=>`PHASE 3 — EIGENVECTORS`,
@@ -1417,7 +1410,7 @@ const DERIV=[
     tt:d=>`Step 4: Explained Variance`,
     fm:d=>`EVR_k = λₖ / Σⱼ λⱼ`,
     bd:(d,p)=>`Each bar shows what fraction of total variance PC k captures. The cumulative line shows how much information is retained if we keep the first k components.<br><br>Total variance = Σλ = trace(C). Each bar = λₖ / Σλ.`,
-    nm:(d,p)=>`Total variance = ${p.lambdas.reduce((s,v)=>s+Math.max(0,v),0).toFixed(4)}\n\n${p.evr.slice(0,6).map((v,i)=>`PC${i+1}: ${(v*100).toFixed(2)}%`).join('\n')}\n\nCumulative PC1+PC2:\n${((p.evr[0]+(p.evr[1]||0))*100).toFixed(1)}% of information kept`
+    nm:(d,p)=>`Total variance = ${p.trace.toFixed(4)}\n\n${p.evr.slice(0,6).map((v,i)=>`PC${i+1}: ${(v*100).toFixed(2)}%`).join('\n')}\n\nCumulative PC1+PC2:\n${((p.evr[0]+(p.evr[1]||0))*100).toFixed(1)}% of information kept`
   },
   {
     ey:d=>`PHASE 5 — PROJECTION`,
