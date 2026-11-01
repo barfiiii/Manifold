@@ -23,6 +23,7 @@
 | 03E | Isomap |
 | 04 | Compare Techniques Side-by-Side |
 | 05 | Dataset Playground |
+| 10 | MD meets ML (mini molecular-dynamics → data matrix → PCA) |
 
 ---
 
@@ -76,7 +77,8 @@ Manifold/
 ├── section-lda.html
 ├── section-isomap.html
 ├── section-compare.html
-└── section05-playground.html
+├── section05-playground.html
+└── section-md-ml.html
 ```
 
 ---

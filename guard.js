@@ -6,7 +6,7 @@
 (function () {
   var MAP = { 'section-01.html': 'curse', 'section-02.html': 'dr', 'section-pca.html': 'pca', 'section-tsne.html': 'tsne',
     'section-umap.html': 'umap', 'section-lda.html': 'lda', 'section-isomap.html': 'iso', 'section-compare.html': 'compare',
-    'section05-playground.html': 'playground' };
+    'section05-playground.html': 'playground', 'section-md-ml.html': 'mdml' };
   try {
     var user = sessionStorage.getItem('manifold_user');
     if (!user) { location.replace('login.html'); return; }

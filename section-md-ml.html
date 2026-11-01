@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MD meets ML — From Trajectories to Latent Maps | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060b1a;--s:rgba(255,255,255,.04);--b:rgba(255,255,255,.1);--t:#e8f4ff;--m:#8aa4c0;--c:#00d4ff;--g:#10b981;--o:#f59e0b;--r:#f43f5e}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);line-height:1.7}
+nav{position:sticky;top:0;background:rgba(6,11,26,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--b);padding:14px 28px;display:flex;justify-content:space-between;font-size:13px;z-index:5}
+nav a{color:var(--m);text-decoration:none}nav span{color:var(--m);font-family:'JetBrains Mono',monospace;font-size:12px}
+main{max-width:980px;margin:0 auto;padding:40px 24px 80px}
+.lab{font-size:11px;letter-spacing:3px;color:var(--c);text-transform:uppercase;margin-bottom:8px}
+h1{font-family:'Playfair Display',serif;font-size:clamp(28px,5vw,44px);line-height:1.15;margin-bottom:14px}
+h2{font-family:'Playfair Display',serif;font-size:24px;margin:48px 0 10px}
+p.lead{color:var(--m);max-width:720px;margin-bottom:22px}p{color:var(--m);margin-bottom:12px}p b{color:var(--t)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:18px 0}
+.flow div{flex:1;min-width:130px;background:var(--s);border:1px solid var(--b);border-radius:12px;padding:12px;font-size:12.5px;color:var(--m)}
+.flow b{display:block;color:var(--c);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 6px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--b);vertical-align:top}th{color:var(--c);font-size:11px;letter-spacing:1px;text-transform:uppercase}td:first-child{color:var(--t);width:36%}td{color:var(--m)}
+.panel{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:18px;margin:14px 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.row{grid-template-columns:1fr}}
+canvas{width:100%;display:block;background:rgba(0,0,0,.25);border-radius:10px}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--m)}
+.ctl input[type=range]{accent-color:var(--c);width:170px}.ctl b{color:var(--t);font-family:'JetBrains Mono',monospace}
+button{background:var(--c);color:#04111f;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-family:inherit}
+button.alt{background:transparent;color:var(--t);border:1px solid var(--b)}button:disabled{opacity:.5;cursor:wait}
+.note{font-size:12.5px;border-left:3px solid var(--o);padding:6px 12px;color:var(--m);margin:12px 0;background:rgba(245,158,11,.06)}
+.stat{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--m);margin-top:8px}.stat b{color:var(--t)}
+</style>
+</head>
+<body>
+<nav><a href="dashboard.html">&larr; Dashboard</a><span>10 &middot; MD meets ML</span><span></span></nav>
+<main>
+<div class="lab">Section 10</div>
+<h1>From molecular dynamics to a latent map</h1>
+<p class="lead">A machine-learning model never sees atoms. It sees a table of numbers. This section builds that table from a small molecular-dynamics simulation you can run in your browser, so you can see exactly where each ML concept comes from in the physics.</p>
+
+<div class="flow">
+<div><b>1 &middot; MD</b>Integrate Newton&rsquo;s equations at a set temperature</div>
+<div><b>2 &middot; Snapshots</b>Equilibrate, then record frames</div>
+<div><b>3 &middot; Descriptor</b>Turn each frame into numbers (e.g. local volume)</div>
+<div><b>4 &middot; Matrix</b>Rows = conditions, columns = features</div>
+<div><b>5 &middot; Scale + DR</b>Normalise 0&ndash;1, then PCA / t-SNE / UMAP</div>
+</div>
+
+<h2>The vocabulary bridge</h2>
+<table>
+<tr><th>In molecular dynamics</th><th>In machine learning</th></tr>
+<tr><td>One temperature-equilibrated system (e.g. 25-mer at 340 K)</td><td>One <b>sample</b> (one row)</td></tr>
+<tr><td>Voronoi volume of each backbone atom</td><td>One <b>feature</b> (one column)</td></tr>
+<tr><td>Temperature (the thing you control)</td><td>A <b>label</b> used only to colour the map, never fed to the model</td></tr>
+<tr><td>Equilibration (discarded start of the run)</td><td>Burn-in: data cleaning before sampling</td></tr>
+<tr><td>Averaging many frames</td><td>Reducing noise in each sample</td></tr>
+<tr><td>Order parameter (e.g. &psi;<sub>6</sub>, density, Tg from a volume&ndash;T plot)</td><td>A hand-made, supervised-by-physics feature that needs prior knowledge</td></tr>
+<tr><td>Only 16&ndash;17 temperatures simulated</td><td>Tiny <b>n</b>, huge <b>d</b>: use PCA first; t-SNE perplexity must be &lt; n/3</td></tr>
+</table>
+
+<h2>Step 1 &mdash; Run the molecular dynamics</h2>
+<p>A 2-D Lennard-Jones solid (64 particles, periodic box, velocity-Verlet, simple velocity-rescaling thermostat). Raise the temperature and watch the lattice lose order. Colour = local free-area proxy (area of a hexagon built from each particle&rsquo;s 6 nearest neighbours; it stands in for the Voronoi cell volume).</p>
+<div class="panel">
+<div class="ctl"><label>Target temperature T* <input id="T" type="range" min="0.15" max="1.3" step="0.05" value="0.3"></label><b id="Tv">0.30</b><button id="run">Pause</button><button class="alt" id="rst">Reset lattice</button></div>
+<div class="row"><div><canvas id="cv" width="420" height="380"></canvas></div><div><canvas id="hist" width="420" height="380"></canvas></div></div>
+<div class="stat">measured T* <b id="Tm">&ndash;</b> &nbsp; &psi;<sub>6</sub> <b id="p6">&ndash;</b> &nbsp; PE/atom <b id="pe">&ndash;</b></div>
+</div>
+
+<h2>Step 2 &mdash; Sweep temperature and build the data matrix</h2>
+<p>For each of 8 temperatures the script equilibrates, records 25 frames and averages a histogram of the local free-area of all particles. One temperature becomes one row of 24 numbers. Then it applies <b>global MinMax</b> and runs PCA &mdash; the same pipeline used on the polymer data.</p>
+<div class="panel"><div class="ctl"><button id="sweep">Run temperature sweep</button><span id="prog"></span></div>
+<div class="row"><div><canvas id="map" width="420" height="340"></canvas></div><div><canvas id="cmp" width="420" height="340"></canvas></div></div>
+<div class="stat" id="sstat">Press the button.</div></div>
+<div class="note"><b>How to read the right plot.</b> &psi;<sub>6</sub> is the classic order parameter: you have to know to look for six-fold order. PC1 is found with no physical knowledge at all. If the two curves follow each other, the unsupervised method has rediscovered the physics.</div>
+
+<h2>What is different from the polymer study</h2>
+<p><b>Identity of the features.</b> In the chain data, column <i>j</i> is always the same backbone atom, so a row is a fingerprint of that chain at one temperature. Fluid particles here are interchangeable, so we describe each system by a <i>distribution</i> (histogram) instead. Always ask what a column means before reading a latent map.</p>
+<p><b>Finite size.</b> With 64 particles the order loss is a smooth crossover, not a sharp jump. A latent-map &ldquo;transition&rdquo; from a small simulation can be a smooth bend; locating it precisely needs more atoms, finer temperature steps, and a physical check such as volume&ndash;T or energy&ndash;T.</p>
+<p><b>Thermostat.</b> Velocity rescaling is the simplest way to hold T. Production MD uses Nos&eacute;&ndash;Hoover or Langevin; the ML side does not change.</p>
+<div class="note">This is a teaching model (2-D, reduced units). Do not read its transition temperature as a real material property.</div>
+</main>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<script>
+function rng(seed){var s=seed>>>0;return function(){s=(s+0x6D2B79F5)>>>0;var t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
+function System(rho,nx,ny,seed){
+  var a=Math.sqrt(2/(Math.sqrt(3)*rho)),N=nx*ny,self=this;
+  self.N=N;self.Lx=nx*a;self.Ly=ny*a*Math.sqrt(3)/2;self.x=new Float64Array(N);self.y=new Float64Array(N);self.vx=new Float64Array(N);self.vy=new Float64Array(N);self.fx=new Float64Array(N);self.fy=new Float64Array(N);
+  self.r=rng(seed);
+  for(var j=0;j<ny;j++)for(var i=0;i<nx;i++){var k=j*nx+i;self.x[k]=(i+(j%2?0.5:0)+0.25)*a;self.y[k]=(j+0.5)*a*Math.sqrt(3)/2;}
+  self.pe=0;
+}
+System.prototype.forces=function(){
+  var N=this.N,Lx=this.Lx,Ly=this.Ly,x=this.x,y=this.y,fx=this.fx,fy=this.fy,rc2=6.25,u=0,shift=4*(Math.pow(1/rc2,6)-Math.pow(1/rc2,3));
+  fx.fill(0);fy.fill(0);
+  for(var i=0;i<N-1;i++)for(var j=i+1;j<N;j++){
+    var dx=x[i]-x[j],dy=y[i]-y[j];dx-=Lx*Math.round(dx/Lx);dy-=Ly*Math.round(dy/Ly);
+    var r2=dx*dx+dy*dy;if(r2<rc2){var ir2=1/r2,ir6=ir2*ir2*ir2,f=24*ir2*ir6*(2*ir6-1);fx[i]+=f*dx;fy[i]+=f*dy;fx[j]-=f*dx;fy[j]-=f*dy;u+=4*ir6*(ir6-1)-shift;}
+  }
+  this.pe=u/N;
+};
+System.prototype.init=function(T){var N=this.N,sx=0,sy=0,i;for(i=0;i<N;i++){this.vx[i]=this.r()-0.5;this.vy[i]=this.r()-0.5;sx+=this.vx[i];sy+=this.vy[i];}
+  for(i=0;i<N;i++){this.vx[i]-=sx/N;this.vy[i]-=sy/N;}this.rescale(T,1);this.forces();};
+System.prototype.temp=function(){var s=0;for(var i=0;i<this.N;i++)s+=this.vx[i]*this.vx[i]+this.vy[i]*this.vy[i];return s/(2*this.N-2);};
+System.prototype.rescale=function(T,w){var t=this.temp(),l=Math.sqrt(1+w*(T/t-1));for(var i=0;i<this.N;i++){this.vx[i]*=l;this.vy[i]*=l;}};
+System.prototype.step=function(T,dt){
+  var N=this.N,i,h=dt/2;
+  for(i=0;i<N;i++){this.vx[i]+=h*this.fx[i];this.vy[i]+=h*this.fy[i];this.x[i]+=dt*this.vx[i];this.y[i]+=dt*this.vy[i];
+    this.x[i]-=this.Lx*Math.floor(this.x[i]/this.Lx);this.y[i]-=this.Ly*Math.floor(this.y[i]/this.Ly);}
+  this.forces();
+  for(i=0;i<N;i++){this.vx[i]+=h*this.fx[i];this.vy[i]+=h*this.fy[i];}
+  this.rescale(T,0.05);
+};
+/* local descriptors: free-area proxy from 6 nearest neighbours, psi6 */
+System.prototype.local=function(){
+  var N=this.N,A=new Float64Array(N),p6=0,Lx=this.Lx,Ly=this.Ly;
+  for(var i=0;i<N;i++){var d=[],re=0,im=0;
+    for(var j=0;j<N;j++){if(i===j)continue;var dx=this.x[j]-this.x[i],dy=this.y[j]-this.y[i];dx-=Lx*Math.round(dx/Lx);dy-=Ly*Math.round(dy/Ly);d.push([dx*dx+dy*dy,Math.atan2(dy,dx)]);}
+    d.sort(function(a,b){return a[0]-b[0];});var m=0;
+    for(var k=0;k<6;k++){m+=Math.sqrt(d[k][0]);re+=Math.cos(6*d[k][1]);im+=Math.sin(6*d[k][1]);}
+    m/=6;A[i]=0.866*m*m;p6+=Math.sqrt(re*re+im*im)/6;}
+  return{A:A,psi6:p6/N};
+};
+
+
+var B=24,LO=0.4,HI=1.6,DT=0.004,S=new System(0.85,8,8,7),TT=0.3,run=true;S.init(TT);
+var cv=document.getElementById('cv'),cx=cv.getContext('2d'),hc=document.getElementById('hist'),hx=hc.getContext('2d');
+function plasma(t){var P=[[13,8,135],[126,3,168],[204,71,120],[248,149,64],[240,249,33]];t=Math.max(0,Math.min(1,t));var x=t*4,i=Math.min(3,Math.floor(x)),f=x-i,a=P[i],b=P[i+1];return'rgb('+[0,1,2].map(function(k){return Math.round(a[k]+(b[k]-a[k])*f)}).join(',')+')';}
+function draw(){
+  var L=S.local(),W=cv.width,H=cv.height,sx=W/S.Lx,sy=H/S.Ly,i;
+  cx.clearRect(0,0,W,H);
+  for(i=0;i<S.N;i++){cx.fillStyle=plasma((L.A[i]-0.7)/0.9);cx.beginPath();cx.arc(S.x[i]*sx,S.y[i]*sy,Math.min(sx,sy)*0.5,0,6.283);cx.fill();}
+  var h=new Array(B).fill(0);L.A.forEach(function(a){var b=Math.max(0,Math.min(B-1,Math.floor((a-LO)/(HI-LO)*B)));h[b]++;});
+  var w=hc.width,ht=hc.height,mx=Math.max.apply(null,h)||1;hx.clearRect(0,0,w,ht);
+  h.forEach(function(v,b){hx.fillStyle=plasma((b+.5)/B);var bh=(v/mx)*(ht-50);hx.fillRect(34+b*(w-44)/B,ht-30-bh,(w-44)/B-2,bh);});
+  hx.fillStyle='#8aa4c0';hx.font='11px DM Sans';hx.fillText('local free area  \u2192  (histogram, 1 frame)',34,ht-10);hx.fillText('count',2,16);
+  document.getElementById('Tm').textContent=S.temp().toFixed(2);document.getElementById('p6').textContent=L.psi6.toFixed(2);document.getElementById('pe').textContent=S.pe.toFixed(2);
+}
+function loop(){if(run){for(var k=0;k<8;k++)S.step(TT,DT);}draw();requestAnimationFrame(loop);}
+document.getElementById('T').oninput=function(){TT=+this.value;document.getElementById('Tv').textContent=TT.toFixed(2);};
+document.getElementById('run').onclick=function(){run=!run;this.textContent=run?'Pause':'Resume';};
+document.getElementById('rst').onclick=function(){S=new System(0.85,8,8,7);S.init(TT);};
+var temps=[0.2,0.35,0.5,0.65,0.8,0.95,1.1,1.25],RES=null;
+function sweep(){
+  var btn=document.getElementById('sweep'),H=[],P=[],i=0;btn.disabled=true;run=false;
+  function one(){
+    if(i>=temps.length){finish();return;}
+    var T=temps[i],s=new System(0.85,8,8,7);s.init(T);for(var k=0;k<1500;k++)s.step(T,DT);
+    var h=new Array(B).fill(0),p6=0,F=25;
+    for(var f=0;f<F;f++){for(var q=0;q<20;q++)s.step(T,DT);var L=s.local();p6+=L.psi6/F;L.A.forEach(function(a){var b=Math.max(0,Math.min(B-1,Math.floor((a-LO)/(HI-LO)*B)));h[b]+=1/(F*s.N);});}
+    H.push(h);P.push(p6);i++;document.getElementById('prog').textContent=' simulated '+i+' / '+temps.length+' temperatures';setTimeout(one,0);
+  }
+  function finish(){
+    var mn=Infinity,mx=-Infinity;H.forEach(function(r){r.forEach(function(v){if(v<mn)mn=v;if(v>mx)mx=v;});});
+    var G=H.map(function(r){return r.map(function(v){return(v-mn)/(mx-mn);});}),pc=MCore.pca(G,2);
+    RES={T:temps,H:H,psi6:P,pc:pc.projected,evr:pc.evr};plot();btn.disabled=false;run=true;document.getElementById('run').textContent='Pause';
+  }
+  one();
+}
+function plot(){
+  var r=RES,mc=document.getElementById('map'),m=mc.getContext('2d'),W=mc.width,H=mc.height,pad=36;m.clearRect(0,0,W,H);
+  var xs=r.pc.map(function(p){return p[0]}),ys=r.pc.map(function(p){return p[1]});
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys),yr=Math.max(y1-y0,0.2*(x1-x0));y0=(y0+y1)/2-yr/1.4;y1=y0+yr*1.4/1;
+  function X(v){return pad+(v-x0)/((x1-x0)||1)*(W-2*pad)}function Y(v){return H-pad-(v-y0)/((y1-y0)||1)*(H-2*pad)}
+  m.strokeStyle='rgba(255,255,255,.3)';m.beginPath();r.pc.forEach(function(p,i){i?m.lineTo(X(p[0]),Y(p[1])):m.moveTo(X(p[0]),Y(p[1]));});m.stroke();
+  r.pc.forEach(function(p,i){m.fillStyle=plasma(i/(r.pc.length-1));m.beginPath();m.arc(X(p[0]),Y(p[1]),7,0,6.283);m.fill();m.fillStyle='#e8f4ff';m.font='10px JetBrains Mono';m.fillText(r.T[i].toFixed(2),X(p[0])+9,Y(p[1])-6);});
+  m.fillStyle='#8aa4c0';m.font='11px DM Sans';m.fillText('PC1 ('+(r.evr[0]*100).toFixed(1)+'%)',W/2-30,H-8);m.save();m.translate(12,H/2+20);m.rotate(-Math.PI/2);m.fillText('PC2 ('+(r.evr[1]*100).toFixed(1)+'%)',0,0);m.restore();
+  var cc=document.getElementById('cmp'),c=cc.getContext('2d');c.clearRect(0,0,W,H);
+  function nrm(a){var lo=Math.min.apply(null,a),hi=Math.max.apply(null,a);return a.map(function(v){return(v-lo)/((hi-lo)||1)});}
+  var pc1=r.pc.map(function(p){return p[0]});if(pc1[0]<pc1[pc1.length-1])pc1=pc1.map(function(v){return-v});
+  var a=nrm(r.psi6),b=nrm(pc1),n=r.T.length;
+  function CX(i){return pad+i/(n-1)*(W-2*pad)}function CY(v){return H-pad-v*(H-2*pad)}
+  [[a,'#f59e0b','\u03c86 (needs prior knowledge)'],[b,'#00d4ff','PC1 (unsupervised, sign-fixed)']].forEach(function(d,k){c.strokeStyle=d[1];c.lineWidth=2;c.beginPath();d[0].forEach(function(v,i){i?c.lineTo(CX(i),CY(v)):c.moveTo(CX(i),CY(v));});c.stroke();c.fillStyle=d[1];c.font='11px DM Sans';c.fillText(d[2],pad,18+k*15);});
+  c.fillStyle='#8aa4c0';c.fillText('temperature T*  \u2192   ('+r.T[0]+' \u2026 '+r.T[n-1]+')',W/2-80,H-8);c.fillText('scaled 0\u20131',2,H/2);
+  var d=0;for(var i=0;i<n;i++)d+=Math.abs(a[i]-b[i]);
+  var rr=(function(){var ma=a.reduce(function(s,v){return s+v},0)/n,mb=b.reduce(function(s,v){return s+v},0)/n,sa=0,sb=0,sab=0;for(var i=0;i<n;i++){sa+=(a[i]-ma)*(a[i]-ma);sb+=(b[i]-mb)*(b[i]-mb);sab+=(a[i]-ma)*(b[i]-mb);}return sab/Math.sqrt(sa*sb);})();
+  document.getElementById('sstat').innerHTML='matrix <b>'+n+' \u00d7 '+B+'</b> (samples \u00d7 features) &nbsp; PC1+PC2 <b>'+((r.evr[0]+r.evr[1])*100).toFixed(1)+'%</b> &nbsp; correlation(\u03c86 , PC1) <b>'+rr.toFixed(3)+'</b>';
+}
+loop();
+document.getElementById('sweep').onclick=sweep;
+</script>
+</body>
+</html>
