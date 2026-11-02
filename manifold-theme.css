@@ -23,7 +23,7 @@ body.light .cvs-wrap canvas,body.light .step-cvs,body.light canvas{background:#f
 body.light .upload-zone{border:2px dashed #cfe8b0!important}
 body.light .builtin-btn.active,body.light .tech-opt.active,body.light .tech-opt.selected{background:var(--tint,#eaffd0)!important;outline:2px solid var(--forest)}
 /* buttons */
-body.light .run-btn,body.light .quiz-submit,body.light .q-btn-main,body.light .ctrl-btn,body.light .cvs-btn,body.light .action-btn,body.light .tbtn.active,body.light .ds-btn.active,body.light .opt-btn.sel,body.light .mode-tog button.on{background:var(--forest)!important;color:#fff!important;border:0!important;border-radius:99px!important}
+body.light .run-btn,body.light .quiz-submit,body.light .q-btn-main,body.light .ctrl-btn.primary,body.light .cvs-btn.primary,body.light .tbtn.active,body.light .ds-btn.active,body.light .opt-btn.sel,body.light .mode-tog button.on{background:var(--forest)!important;color:#fff!important;border:0!important;border-radius:99px!important}
 body.light .ds-btn,body.light .tbtn,body.light .opt-btn,body.light .q-btn-sec,body.light .pill,body.light .theme-btn{background:#fff;color:var(--ink);border:1.5px solid #dcdcdc;border-radius:99px}
 body.light .step-num,body.light .q-num,body.light .phase-dot.active{background:var(--forest)!important;color:var(--lime)!important}
 body.light input[type=range]{accent-color:var(--forest)}
@@ -42,3 +42,15 @@ body.light table{background:#fff}body.light th,body.light td{border-color:#efefe
 body.light .status-done{background:#eaffd0!important;color:#2f6b12!important;border-color:#cfe8b0!important}body.light .status-running{background:#fff5ec!important;color:#c2410c!important}body.light .status-idle{background:#f3f3f3!important;color:#626262!important}
 body.light .hero p,body.light .hero-body,body.light .hero-sub,body.light .hero-body *{color:#274d2f!important}
 body.light .hero h1,body.light .hero-title{color:var(--ink)!important}
+
+/* interactive polish: sliders, secondary buttons, panels */
+body.light .ctrl-btn,body.light .cvs-btn,body.light .action-btn{background:#fff!important;color:var(--forest)!important;border:1.5px solid var(--forest)!important;border-radius:99px!important}
+body.light .ctrl-btn:hover,body.light .cvs-btn:hover,body.light .action-btn:hover{background:#eaffd0!important}
+body.light input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;background:#e1e1e1;outline:0;border:0}
+body.light input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--forest);border:4px solid var(--lime);cursor:pointer}
+body.light input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--forest);border:4px solid var(--lime);cursor:pointer}
+body.light .explorer-hd,body.light .explorer-title{color:var(--ink)!important}
+body.light .s-val,body.light .exp-m-val,body.light .stat-n,body.light .stat-box-val{color:var(--forest)!important;font-weight:600}
+body.light .s-label,body.light .exp-m-lbl,body.light .stat-l,body.light .stat-box-lbl{color:var(--muted)!important;letter-spacing:1px}
+body.light #status-box,body.light .status-box,body.light .stat-panel,body.light .metrics-box{background:#f6f6f6!important;border:0!important;color:var(--text)!important;border-radius:16px}
+body.light .dp-status{background:#f6f6f6!important;border:0!important;color:var(--muted)!important;border-radius:12px}

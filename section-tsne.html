@@ -1179,9 +1179,9 @@ function drawTSNE(running){
   const badge=TSNE_STATE.showPCA?'PCA (linear)':'t-SNE (non-linear)';
   const badgeCol=TSNE_STATE.showPCA?'#00d4ff':'#f43f5e';
   ctx.fillStyle=badgeCol+'22';
-  ctx.beginPath();ctx.roundRect?ctx.roundRect(pl,pt2-36,cW,22,5):ctx.rect(pl,pt2-36,cW,22);ctx.fill();
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(pl,pt2-44,cW,18,5):ctx.rect(pl,pt2-44,cW,18);ctx.fill();
   ctx.fillStyle=badgeCol;ctx.font='11px JetBrains Mono,monospace';ctx.textBaseline='middle';
-  ctx.fillText(badge,pl+cW/2,pt2-25);
+  ctx.fillText(badge,pl+cW/2,pt2-35);
 }
 
 function updateDerivPanel(){
