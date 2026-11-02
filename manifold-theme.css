@@ -1,0 +1,44 @@
+/* Manifold shared theme (light = green & white). Applies when body has class "light". */
+body.light{--bg:#e9e9e9;--surface:#fff;--surface2:#f6f6f6;--surface-h:#f6f6f6;--border:#ececec;--border2:#dcdcdc;--border-h:#dcdcdc;
+ --text:#0d0d0d;--muted:#626262;--soft:#4a4a4a;--accent:#0f3b1f;--accent2:#2f6b12;--cyan:#0f3b1f;--green:#2f9e44;--gold:#e8590c;--purple:#2f6b12;--rose:#e11d48;
+ --pca:#0f3b1f;--tsne:#ff6a2b;--umap:#2f9e44;--lda:#6d28d9;--iso:#d97706;--lime:#b7f36b;--forest:#0f3b1f;--ink:#0d0d0d}
+body.light,body.light *:not(code):not(pre){font-family:'Outfit',system-ui,sans-serif}
+body.light{background:var(--bg)!important;color:var(--text)}
+body.light #bg,body.light #hero-cvs,body.light .blob,body.light .b1,body.light .b2{display:none!important}
+body.light .nav,body.light .topnav{background:rgba(233,233,233,.93)!important;border-bottom:0!important;backdrop-filter:blur(10px)}
+body.light .nav *,body.light .topnav *{color:var(--ink)}
+body.light #prog,body.light .reading-bar{background:linear-gradient(90deg,var(--forest),var(--lime))!important}
+/* hero -> lime card */
+body.light .hero{background:var(--lime)!important;min-height:0!important;height:auto!important;margin:14px auto 8px;max-width:1100px;border-radius:28px;padding:64px 28px 56px!important}
+body.light .hero *{color:#274d2f}
+body.light .hero h1,body.light .hero-title,body.light .hero .hero-title,body.light .page-hd h1{background:none!important;-webkit-text-fill-color:var(--ink)!important;color:var(--ink)!important;font-weight:600!important;letter-spacing:-1.5px;line-height:1.08}
+body.light .hero h1{font-size:clamp(36px,6.2vw,68px)!important}
+body.light .hero-scroll,body.light .scroll-cue{color:#274d2f!important}
+body.light .eyebrow,body.light .hero-eyebrow,body.light .quiz-eyebrow{color:var(--forest)!important;letter-spacing:2px}
+body.light h1,body.light h2,body.light h3,body.light .sec-title,body.light .step-title,body.light .explorer-title,body.light .quiz-title{color:var(--ink)!important;background:none!important;-webkit-text-fill-color:currentColor!important;font-weight:600;letter-spacing:-.4px}
+/* cards */
+body.light .analogy-card,body.light .prop-card,body.light .deriv-panel,body.light .math-block,body.light .explorer-wrap,body.light .explorer-panel,body.light .explorer,body.light .info-card,body.light .q-card,body.light .stat-card,body.light .step-block,body.light .canvas-card,body.light .tech-panel,body.light .ctrl-panel,body.light .output-panel,body.light .upload-zone,body.light .quiz-wrap,body.light .quiz-q,body.light .ds-picker,body.light .formula,body.light .step-exp,body.light .explorer-insight,body.light .step-insight,body.light .stat-box,body.light .builtin-btn,body.light .tech-opt,body.light .controls-bar,body.light .cmp-section,body.light .ds-section,body.light .analogy,body.light .stat-strip,body.light .tech-selector,body.light .derivation,body.light .deriv-step,body.light .dp-body,body.light .cvs-wrap,body.light .canvas-row,body.light .ex-layout,body.light .cmp-grid,body.light .legend-area,body.light .step-math,body.light .footnote{background:#fff!important;border:0!important;border-radius:24px!important;box-shadow:none!important;color:var(--text)}
+body.light .analogy-card::before{display:none}
+body.light .cvs-wrap canvas,body.light .step-cvs,body.light canvas{background:#f4f4f4;border-radius:16px}
+body.light .upload-zone{border:2px dashed #cfe8b0!important}
+body.light .builtin-btn.active,body.light .tech-opt.active,body.light .tech-opt.selected{background:var(--tint,#eaffd0)!important;outline:2px solid var(--forest)}
+/* buttons */
+body.light .run-btn,body.light .quiz-submit,body.light .q-btn-main,body.light .ctrl-btn,body.light .cvs-btn,body.light .action-btn,body.light .tbtn.active,body.light .ds-btn.active,body.light .opt-btn.sel,body.light .mode-tog button.on{background:var(--forest)!important;color:#fff!important;border:0!important;border-radius:99px!important}
+body.light .ds-btn,body.light .tbtn,body.light .opt-btn,body.light .q-btn-sec,body.light .pill,body.light .theme-btn{background:#fff;color:var(--ink);border:1.5px solid #dcdcdc;border-radius:99px}
+body.light .step-num,body.light .q-num,body.light .phase-dot.active{background:var(--forest)!important;color:var(--lime)!important}
+body.light input[type=range]{accent-color:var(--forest)}
+body.light .tint,body.light .callout{background:#eaffd0;color:#2f6b12}
+body.light a{color:var(--forest)}
+body.light .footer{background:transparent!important;color:var(--muted)!important}
+body.light .divider{opacity:.2}
+body.light .mi,body.light .dp-formula,body.light .dp-numeric,body.light code{background:#eaffd0!important;color:#2f6b12!important;border:0!important;border-radius:8px}
+body.light .step-block{padding:30px!important;margin:18px 0}
+body.light .explorer-wrap,body.light .explorer,body.light .quiz-wrap{padding:24px}
+body.light .insight,body.light .callout,body.light .feedback{border-radius:16px}
+body.light .q-opt,body.light .opt-btn{background:#f6f6f6!important;color:var(--ink)!important;border:1.5px solid transparent!important;border-radius:16px!important}
+body.light .q-opt:hover,body.light .opt-btn:hover{border-color:var(--forest)!important}
+body.light .fb-c{color:#2f6b12!important}body.light .fb-w{color:#c2410c!important}
+body.light table{background:#fff}body.light th,body.light td{border-color:#efefef!important;color:var(--text)}
+body.light .status-done{background:#eaffd0!important;color:#2f6b12!important;border-color:#cfe8b0!important}body.light .status-running{background:#fff5ec!important;color:#c2410c!important}body.light .status-idle{background:#f3f3f3!important;color:#626262!important}
+body.light .hero p,body.light .hero-body,body.light .hero-sub,body.light .hero-body *{color:#274d2f!important}
+body.light .hero h1,body.light .hero-title{color:var(--ink)!important}

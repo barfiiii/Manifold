@@ -77,8 +77,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .col-name{flex:1;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .col-type{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,.05)}
 .label-select-wrap{margin-top:8px}
+.col-actions{display:flex;gap:6px;margin:0 0 6px}
+.col-actions button,.mode-tog button{background:var(--surface2);border:1px solid var(--border2);color:var(--soft);font-size:10.5px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.col-actions button:hover,.mode-tog button:hover{border-color:var(--cyan);color:var(--text)}
+.mode-tog{display:flex;gap:5px;margin-bottom:9px}
+.mode-tog button.on{background:var(--cyan);color:#04111f;border-color:var(--cyan);font-weight:600}
 .label-select{width:100%;background:#0a1628;border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
 .label-select:focus{border-color:var(--cyan)}
+body.light .label-select{background:#ffffff;color:#0f1b2d;border-color:rgba(0,0,0,0.18)}
+.label-select option{background:#0a1628;color:#dde8f5}
+body.light .label-select option{background:#ffffff;color:#0f1b2d}
+.std-opt{align-items:flex-start}
+.std-opt input{margin-top:2px;flex-shrink:0}
 
 /* ── Class colour palette ── */
 .color-cls-block{margin-bottom:11px}
@@ -176,6 +186,7 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="manifold-theme.css"><script src="manifold-theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -242,8 +253,9 @@ body.light #bg{opacity:0.05 !important;}
       <span class="ctrl-hd-meta" id="col-count"></span>
     </div>
     <div class="ctrl-body">
-      <label class="std-opt" style="margin:0 0 8px"><input type="checkbox" id="transpose-chk"> Columns are samples (transpose) &mdash; use when each column is one condition, e.g. 300k, 340k&hellip;</label>
+      <label class="std-opt" style="margin:0 0 8px" title="Tick when each column is one condition (e.g. 300k, 340k) and each row is one feature"><input type="checkbox" id="transpose-chk"> <span>Columns are samples (transpose)</span></label>
       <div class="col-section-lbl">Feature columns (numeric)</div>
+      <div class="col-actions"><button type="button" id="sel-all">Select all</button><button type="button" id="sel-none">Clear</button></div>
       <div class="col-list" id="col-list"></div>
       <div class="label-select-wrap">
         <div class="col-section-lbl" style="margin-top:9px">Label / colour column</div>
@@ -295,9 +307,9 @@ body.light #bg{opacity:0.05 !important;}
       </div>
       <div class="col-section-lbl" style="margin-top:10px">Scaling</div>
       <select class="label-select" id="scale-sel">
-        <option value="gmm" selected>Normalise 0\u20131 (Global MinMax, one min/max for all values)</option>
-        <option value="fmm">Normalise 0\u20131 per feature (each column separately)</option>
-        <option value="z">Standardise per feature (z-score)</option>
+        <option value="gmm" selected>Normalise 0&ndash;1 (global MinMax)</option>
+        <option value="fmm">Normalise 0&ndash;1 (per feature)</option>
+        <option value="z">Z-score (per feature)</option>
         <option value="none">None</option>
       </select>
       <label class="std-opt"><input type="checkbox" id="impute-chk" checked> Fill missing values with column mean (else drop row)</label>
@@ -448,7 +460,8 @@ var APP={
   userColors:{}   // index -> hex, persists across re-runs on same dataset
 };
 
-function setUploadZoneLoaded(filename){
+function setUploadZoneLoaded(name){var ssu=document.getElementById('scale-sel');if(ssu)ssu.value='gmm';setUploadZoneLoaded0(name);}
+function setUploadZoneLoaded0(filename){
   var zone=document.getElementById('upload-zone');
   // keep the hidden file input, replace visible content only
   var inp=zone.querySelector('input[type=file]');
@@ -479,6 +492,7 @@ function loadBuiltin(key){
   document.getElementById('file-name').textContent='';
   resetUploadZone();
   APP.parsedDropped=0;
+  var ssb=document.getElementById('scale-sel');if(ssb)ssb.value='z';   /* built-ins mix units (e.g. Wine): z-score */
   processCSV(csv.headers,csv.rows,csv.name);
 }
 
@@ -515,7 +529,7 @@ function processTable(headers,rows,name){
   hideError();
   APP.parsed={headers:headers,rows:rows,name:name};
   APP.colTypes=detectColumnTypes(headers,rows);
-  APP.userColors={};
+  APP.userColors={};APP.colorMode='gradient';
   var numericCols=APP.colTypes.filter(function(c){return c.numeric;});
   if(numericCols.length<2){showError('Need at least 2 numeric columns for embedding.');return;}
   // Label default: a numeric "temperature" column if present, else the last categorical column (good for built-ins)
@@ -540,7 +554,7 @@ function renderColSelector(){
   var sel=document.getElementById('label-select');
   list.innerHTML='';
   sel.innerHTML='<option value="">None</option>';
-  var manyNum=ct.filter(function(c){return c.numeric;}).length>60;
+  var nNum=ct.filter(function(c){return c.numeric;}).length,manyNum=nNum>3000,manyOpt=nNum>60;
   if(manyNum){var sm=document.createElement('div');sm.className='col-item selected';
     sm.innerHTML='<span class="col-name">'+APP.selectedFeatures.length+' numeric columns used as features (too many to list)</span>';list.appendChild(sm);}
   ct.forEach(function(c){
@@ -561,7 +575,7 @@ function renderColSelector(){
       });
       list.appendChild(item);
     }
-    if(manyNum&&c.numeric&&!/^temp/i.test(c.name))return;   // only offer sensible label columns when there are thousands
+    if(manyOpt&&c.numeric&&!/^temp/i.test(c.name))return;   // only offer sensible label columns when there are thousands
     var opt=document.createElement('option');
     opt.value=c.colIdx;opt.textContent=c.name+(c.numeric?' (num)':' (cat)');
     sel.appendChild(opt);
@@ -569,7 +583,7 @@ function renderColSelector(){
   document.getElementById('col-count').textContent=APP.selectedFeatures.length+' feat';
   sel.value=APP.labelCol;
   sel.onchange=function(){
-    var prev=APP.labelCol;APP.labelCol=this.value;APP.userColors={};
+    var prev=APP.labelCol;APP.labelCol=this.value;APP.userColors={};APP.colorMode='gradient';
     // a numeric label column is not a feature; the previous one goes back in
     if(prev!==''&&APP.colTypes[+prev]&&APP.colTypes[+prev].numeric&&APP.selectedFeatures.indexOf(+prev)===-1)APP.selectedFeatures.push(+prev);
     if(APP.labelCol!=='')APP.selectedFeatures=APP.selectedFeatures.filter(function(x){return x!==+APP.labelCol;});
@@ -581,9 +595,19 @@ function renderColSelector(){
 /* ════════════════════════════════
    COLOUR PANEL — reads label column, shows palette per class
 ════════════════════════════════ */
-function isGradientCol(ci){
+function canGradient(ci){
   var c=APP.colTypes&&APP.colTypes[ci];if(!c||!c.numeric)return false;
   var set={};APP.parsed.rows.forEach(function(r){set[r[ci]]=1;});var nu=Object.keys(set).length;return nu>12||(nu>=4&&/^temp/i.test(c.name));
+}
+function isGradientCol(ci){return canGradient(ci)&&APP.colorMode!=='classes';}
+function modeToggleHTML(){
+  var g=APP.colorMode!=='classes';
+  return '<div class="mode-tog"><button type="button" data-m="gradient" class="'+(g?'on':'')+'">Gradient</button><button type="button" data-m="classes" class="'+(g?'':'on')+'">Each value = class</button></div>';
+}
+function bindModeToggle(body){
+  body.querySelectorAll('.mode-tog button').forEach(function(b){
+    b.addEventListener('click',function(){APP.colorMode=b.dataset.m;APP.userColors={};previewLabels();});
+  });
 }
 var PLASMA=[[13,8,135],[126,3,168],[204,71,120],[248,149,64],[240,249,33]];
 function plasmaCol(t){t=Math.max(0,Math.min(1,t));var x=t*(PLASMA.length-1),i=Math.min(PLASMA.length-2,Math.floor(x)),f=x-i,a=PLASMA[i],b=PLASMA[i+1];
@@ -605,7 +629,9 @@ function previewLabels(){
   }
   if(isGradientCol(labelColIdx)){
     APP.labelNames=[];
-    document.getElementById('color-panel-body').innerHTML='<div class="color-empty">Continuous colour (plasma)<br>by <b>'+MCore.esc(APP.colTypes[labelColIdx].name)+'</b>.<br>Points are joined in order<br>when there are \u2264100.</div>';
+    var gb=document.getElementById('color-panel-body');
+    gb.innerHTML=modeToggleHTML()+'<div class="color-empty">Continuous colour (plasma)<br>by <b>'+MCore.esc(APP.colTypes[labelColIdx].name)+'</b>.<br>Points are joined in order<br>when there are \u2264100.</div>';
+    bindModeToggle(gb);
     return;
   }
   var rawLabels=APP.parsed.rows.map(function(r){return r[labelColIdx];});
@@ -615,8 +641,9 @@ function previewLabels(){
   var keys=Object.keys(labelSet);
   if(keys.length>20){
     APP.labelNames=[];
-    document.getElementById('color-panel-body').innerHTML=
-      '<div class="color-empty">Too many unique values<br>('+keys.length+') for colour groups.<br>Choose a column with<br>\u226420 distinct classes.</div>';
+    var tb=document.getElementById('color-panel-body');
+    tb.innerHTML=(canGradient(labelColIdx)?modeToggleHTML():'')+'<div class="color-empty">Too many unique values<br>('+keys.length+') for colour groups.<br>Choose a column with<br>\u226420 distinct classes.</div>';
+    bindModeToggle(tb);
     return;
   }
   APP.labelNames=keys;
@@ -632,7 +659,7 @@ function renderColorPanel(){
     body.innerHTML='<div class="color-empty">Load a dataset and<br>select a label column<br>to assign colours</div>';
     return;
   }
-  var html='';
+  var html=(APP.labelCol!==''&&canGradient(parseInt(APP.labelCol)))?modeToggleHTML():'';
   APP.labelNames.forEach(function(name,ci){
     var cur=APP.userColors[ci]||FULL_PALETTE[ci%FULL_PALETTE.length];
     html+='<div class="color-cls-block">';
@@ -650,6 +677,7 @@ function renderColorPanel(){
     html+='</div>';
   });
   body.innerHTML=html;
+  bindModeToggle(body);
   // Attach click listeners (avoids inline quoting issues)
   body.querySelectorAll('.swatch').forEach(function(sw){
     sw.addEventListener('click',function(){
@@ -704,7 +732,9 @@ function extractData(tech){
   var sc=document.getElementById('scale-sel'),scv=sc?sc.value:'z';
   if(scv==='z'){data=MCore.standardize(data).data;notes.push('z-score');}
   else if(scv==='fmm'){var d0=data[0].length,mnf=new Array(d0).fill(Infinity),mxf=new Array(d0).fill(-Infinity);data.forEach(function(r){r.forEach(function(v,j){if(v<mnf[j])mnf[j]=v;if(v>mxf[j])mxf[j]=v;});});data=data.map(function(r){return r.map(function(v,j){return (v-mnf[j])/((mxf[j]-mnf[j])||1);});});notes.push('per-feature MinMax');}
-  else if(scv==='gmm'){var mn=Infinity,mx=-Infinity;data.forEach(function(r){r.forEach(function(v){if(v<mn)mn=v;if(v>mx)mx=v;});});var rg=(mx-mn)||1;data=data.map(function(r){return r.map(function(v){return (v-mn)/rg;});});notes.push('global MinMax');}
+  else if(scv==='gmm'){var mn=Infinity,mx=-Infinity;data.forEach(function(r){r.forEach(function(v){if(v<mn)mn=v;if(v>mx)mx=v;});});var rg=(mx-mn)||1;data=data.map(function(r){return r.map(function(v){return (v-mn)/rg;});});notes.push('global MinMax');
+    var rgs=[];for(var jj=0;jj<data[0].length;jj++){var a1=Infinity,b1=-Infinity;rows.forEach(function(r){var v=Number(r[fc[jj]]);if(v<a1)a1=v;if(v>b1)b1=v;});rgs.push(b1-a1);}
+    var rpos=rgs.filter(function(x){return x>0;});if(rpos.length&&Math.max.apply(null,rpos)/Math.min.apply(null,rpos)>100)notes.push('\u26a0 feature ranges differ >100\u00d7: large-range features dominate \u2014 consider per-feature or z-score');}
   else notes.push('features NOT scaled');
   APP.gradVals=null;
   var labelColIdx=APP.labelCol!==''?parseInt(APP.labelCol):-1,labels,labelNames,colors;
@@ -726,7 +756,7 @@ function extractData(tech){
 /* ════════════════════════════════
    ALGORITHMS
 ════════════════════════════════ */
-function algoPCA(data){return MCore.pca(data,2).projected;}
+function algoPCA(data){var r=MCore.pca(data,2);APP.pcaEvr=r.evr;return r.projected;}
 
 function algoLDA(data,labels){
   var n=data.length,d=data[0].length;
@@ -882,6 +912,7 @@ function finish(pts){
   document.getElementById('run-btn').disabled=false;
   document.getElementById('output-title').textContent=getTechName(APP.technique)+' \u2014 '+APP.parsed.name;
   var nts=(APP.notes||[]).slice();
+  if(APP.technique==='pca'&&APP.pcaEvr)nts.unshift('PC1 '+(APP.pcaEvr[0]*100).toFixed(2)+'% + PC2 '+(APP.pcaEvr[1]*100).toFixed(2)+'% = '+((APP.pcaEvr[0]+APP.pcaEvr[1])*100).toFixed(2)+'% variance');
   if(APP.technique==='iso'&&APP.kUsed>APP.kReq)nts.push('k raised from '+APP.kReq+' to '+APP.kUsed+' to connect the graph');
   document.getElementById('output-sub').textContent=APP.data.length+' pts \u00b7 '+APP.data[0].length+' features \u00b7 '+elapsed.toFixed(0)+'ms'+(nts.length?' \u00b7 '+nts.join(' \u00b7 '):'');
   document.getElementById('stats-row').style.display='grid';
@@ -1046,6 +1077,13 @@ window.addEventListener('load',function(){
     reader.readAsText(file);
   });
 
+  function setAllFeatures(on){
+    if(!APP.colTypes)return;
+    APP.selectedFeatures=on?APP.colTypes.filter(function(c){return c.numeric&&String(c.colIdx)!==APP.labelCol;}).map(function(c){return c.colIdx;}):[];
+    renderColSelector();if(APP.labelCol==='')previewLabels();updateRunButton();
+  }
+  document.getElementById('sel-all').addEventListener('click',function(){setAllFeatures(true);});
+  document.getElementById('sel-none').addEventListener('click',function(){setAllFeatures(false);});
   var tchk=document.getElementById('transpose-chk');
   if(tchk)tchk.addEventListener('change',function(){if(APP.raw)processCSV(APP.raw.headers,APP.raw.rows,APP.raw.name,this.checked);});
   // Drag-and-drop
